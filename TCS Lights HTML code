@@ -1,0 +1,1603 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TCS Lights">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#173a2c">
+<meta name="color-scheme" content="light dark">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>TCS Lights</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Layout: green band header, one screen per tab, bottom tab bar for thumbs. Customers first, Quote second. */
+  :root {
+    --bg: #eef2ee; --panel: #ffffff; --ink: #14241c; --muted: #5a6b61; --rule: #d3dbd4;
+    --band: #173a2c; --band-ink: #f6efe0; --bulb: #e0951c;
+    --pine: #1f5a42; --pine-ink: #ffffff; --field: #f6f8f5; --focus: #1f5a42; --stage: #0e1712;
+    --warn: #b3261e; --soft: #e3ece5; --ok: #1f7a4d; --amber: #9a5b00; --amber-bg: #fbeacc;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1a15; --panel: #172620; --ink: #e9efe9; --muted: #98aa9f; --rule: #2a3d34;
+      --band: #0a2a1f; --band-ink: #f6efe0; --bulb: #f0a93a;
+      --pine: #6fc79f; --pine-ink: #0b1712; --field: #0f1a15; --focus: #6fc79f; --stage: #070c09;
+      --warn: #ff8a80; --soft: #1d3128; --ok: #7fd9a8; --amber: #f0c36a; --amber-bg: #3a2c10;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 400 16px/1.4 "Barlow", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+  .wrap { max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: 0 24px; }
+  h2 { font: 600 22px/1.1 "Barlow Condensed", "Arial Narrow", sans-serif; margin: 0 0 4px; }
+  h3 { font: 600 18px/1.1 "Barlow Condensed", "Arial Narrow", sans-serif; margin: 0; }
+  .hint { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
+  .small { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+  .hidden { display: none !important; }
+  [hidden] { display: none !important; }
+
+  .top { background: var(--band); color: var(--band-ink); margin-inline: -16px; padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 26px; position: relative; margin-bottom: 16px; }
+  @media (min-width: 790px) { .top { margin-inline: 0; border-radius: 0 0 14px 14px; } }
+  .top::after { content: ""; position: absolute; left: 0; right: 0; bottom: 9px; height: 8px;
+    background-image: radial-gradient(circle at 50% 50%, var(--bulb) 0 3px, transparent 3.5px);
+    background-size: 22px 8px; background-repeat: repeat-x; }
+  .top h1 { font: 600 15px/1.2 "Barlow", sans-serif; margin: 0 0 8px; opacity: .85; }
+  .top .stat { font: 700 40px/1 "Barlow Condensed", "Arial Narrow", sans-serif; }
+  .top .statl { font-size: 13px; opacity: .9; }
+
+  .tabbar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; background: var(--panel); border-top: 1px solid var(--rule);
+    padding-bottom: env(safe-area-inset-bottom, 0px); z-index: 20; }
+  .tabbar button { flex: 1; min-height: 58px; border: 0; background: transparent; color: var(--muted); font: 600 15px "Barlow", sans-serif; cursor: pointer; padding: 0 4px; }
+  .tabbar button[aria-current="page"] { color: var(--pine); box-shadow: inset 0 3px 0 var(--pine); }
+
+  section.card, .panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .grow { flex: 1; min-width: 0; }
+  button.btn, a.btn { min-height: 46px; padding: 0 14px; border-radius: 9px; font: 600 16px "Barlow", sans-serif; cursor: pointer;
+    background: transparent; color: var(--pine); border: 1.5px solid var(--pine); display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+  button.btn.primary, a.btn.primary { background: var(--pine); color: var(--pine-ink); }
+  button.btn.sm, a.btn.sm { min-height: 40px; padding: 0 12px; font-size: 15px; }
+  button.btn:disabled, a.btn[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+  button.btn.danger { color: var(--warn); border-color: var(--warn); }
+  button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+  select, input[type="number"], input[type="text"], input[type="search"], input[type="tel"], input[type="date"], textarea {
+    min-height: 44px; border: 1px solid var(--rule); background: var(--field); color: var(--ink); border-radius: 8px;
+    padding: 6px 10px; font: 500 17px "Barlow", sans-serif; max-width: 100%; }
+  input[type="number"], input[type="text"], input[type="search"], input[type="tel"], select, textarea { width: 100%; }
+  textarea { min-height: 120px; line-height: 1.45; resize: vertical; font-weight: 400; }
+  label.l { display: block; font-size: 13px; color: var(--muted); margin: 0 0 4px; }
+  .fields { display: grid; gap: 10px; grid-template-columns: 1fr; }
+  @media (min-width: 560px) { .fields.two { grid-template-columns: 1fr 1fr; } }
+
+  /* customers */
+  .cust-row { display: flex; gap: 10px; align-items: center; width: 100%; text-align: left; background: var(--panel); color: var(--ink);
+    border: 0; border-top: 1px solid var(--rule); padding: 12px 2px; cursor: pointer; font: inherit; min-height: 60px; }
+  .cust-row:first-child { border-top: 0; }
+  .cust-name { font: 600 19px/1.15 "Barlow Condensed", "Arial Narrow", sans-serif; }
+  .cust-sub { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pill { font-size: 12px; font-weight: 600; border-radius: 999px; padding: 3px 9px; background: var(--soft); color: var(--ink); white-space: nowrap; }
+  .pill.asked { background: var(--amber-bg); color: var(--amber); }
+  .pill.booked, .pill.installed { background: var(--pine); color: var(--pine-ink); }
+  .pill.skip { background: transparent; border: 1px solid var(--rule); color: var(--muted); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip { min-height: 38px; padding: 0 12px; border-radius: 999px; border: 1.5px solid var(--rule); background: var(--field); color: var(--ink); cursor: pointer; font: 600 14px "Barlow", sans-serif; }
+  .chip[aria-pressed="true"] { background: var(--pine); border-color: var(--pine); color: var(--pine-ink); }
+
+  .person { border: 1px solid var(--rule); border-radius: 10px; padding: 12px; margin-bottom: 10px; background: var(--field); }
+  .sendrow { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--rule); }
+  .sendrow:first-of-type { border-top: 0; }
+  .sendrow .t { font-weight: 600; }
+  .sendrow .s { font-size: 12px; color: var(--muted); }
+  .sent { color: var(--ok); }
+
+  .hist { border-top: 1px solid var(--rule); padding: 8px 0; display: flex; gap: 8px; align-items: flex-start; justify-content: space-between; }
+  .hist:first-child { border-top: 0; }
+  .hist b { font-variant-numeric: tabular-nums; }
+  .x { flex: none; width: 40px; height: 40px; border: 1px solid var(--rule); background: transparent; color: var(--muted); border-radius: 8px; font-size: 20px; cursor: pointer; }
+
+  dialog { border: 0; border-radius: 12px; padding: 14px; width: min(94vw, 560px); background: var(--panel); color: var(--ink); }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  dialog img { max-width: 100%; max-height: 70vh; display: block; margin: 8px 0; border-radius: 8px; }
+  .banner { background: var(--amber-bg); color: var(--amber); border-radius: 8px; padding: 10px 12px; font-size: 14px; margin-bottom: 12px; }
+
+  /* sketch and quote */
+  .band { background: var(--band); color: var(--band-ink); margin-inline: -16px; padding: 16px 16px 28px; position: relative; margin-bottom: 16px; }
+  @media (min-width: 790px) { .band { margin-inline: 0; border-radius: 14px; } }
+  .band::after { content: ""; position: absolute; left: 0; right: 0; bottom: 9px; height: 8px;
+    background-image: radial-gradient(circle at 50% 50%, var(--bulb) 0 3px, transparent 3.5px);
+    background-size: 22px 8px; background-repeat: repeat-x; }
+  .band h1 { font: 600 15px/1.2 "Barlow", sans-serif; margin: 0 0 8px; opacity: .85; }
+  .cust { width: 100%; background: transparent; border: 0; border-bottom: 1px solid rgba(246,239,224,.35);
+    color: var(--band-ink); font: 500 18px "Barlow", sans-serif; padding: 4px 0 6px; margin-bottom: 10px; border-radius: 0; min-height: 40px; }
+  .cust::placeholder { color: rgba(246,239,224,.55); }
+  .band select { background: rgba(246,239,224,.12); color: var(--band-ink); border: 1px solid rgba(246,239,224,.35); margin-bottom: 14px; }
+  .band select option { color: #14241c; }
+  .totals2 { display: flex; gap: 18px 28px; flex-wrap: wrap; align-items: flex-end; }
+  .big { font: 700 58px/0.95 "Barlow Condensed", "Arial Narrow", sans-serif; letter-spacing: .5px; font-variant-numeric: tabular-nums; }
+  .bigl { font-size: 13px; opacity: .9; margin-top: 2px; }
+  .mid { font: 600 30px/1 "Barlow Condensed", "Arial Narrow", sans-serif; font-variant-numeric: tabular-nums; }
+  .minnote { margin-top: 8px; font-size: 13px; color: #ffd9a0; min-height: 1em; }
+
+  .stage { position: relative; background: var(--stage); border-radius: 10px; overflow: auto; max-height: 62vh; min-height: 220px; -webkit-overflow-scrolling: touch; }
+  canvas { display: block; touch-action: pan-x pan-y; }
+  .empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 20px; text-align: center; color: #cfe0d6; }
+  .empty p { margin: 0; max-width: 30ch; }
+  .hintline { margin: 10px 2px; color: var(--muted); font-size: 15px; min-height: 2.6em; }
+  .cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; }
+  .cat { text-align: left; min-height: 56px; padding: 6px 10px; border-radius: 9px; border: 1.5px solid var(--rule);
+    background: var(--field); color: var(--ink); cursor: pointer; font: 600 15px/1.15 "Barlow", sans-serif; display: flex; flex-direction: column; gap: 2px; }
+  .cat span { font: 500 13px "Barlow", sans-serif; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .cat[aria-pressed="true"] { background: var(--pine); border-color: var(--pine); color: var(--pine-ink); }
+  .cat[aria-pressed="true"] span { color: var(--pine-ink); opacity: .85; }
+  .cat.scale { border-style: dashed; }
+  .swatches { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .sw { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--rule); cursor: pointer; padding: 0; }
+  .sw[aria-pressed="true"] { outline: 3px solid var(--pine); outline-offset: 2px; }
+  .patrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+  .patrow label { font-size: 14px; color: var(--muted); }
+  .patrow select { width: auto; }
+  .seqprev { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; min-height: 26px; }
+  .seqprev i { width: 22px; height: 22px; border-radius: 50%; display: inline-block; border: 1px solid rgba(0,0,0,.35); }
+  .sliders { display: grid; gap: 10px; grid-template-columns: 1fr; margin-top: 12px; }
+  @media (min-width: 560px) { .sliders { grid-template-columns: 1fr 1fr; } }
+  .sliders label { display: flex; justify-content: space-between; font-size: 14px; color: var(--muted); }
+  .sliders label b { color: var(--ink); font-weight: 600; }
+  input[type="range"] { width: 100%; min-height: 34px; accent-color: var(--pine); }
+  details > summary { cursor: pointer; font: 600 17px "Barlow", sans-serif; min-height: 40px; display: flex; align-items: center; color: var(--pine); }
+  .line { border-top: 1px solid var(--rule); padding: 14px 0 6px; }
+  .line:first-child { border-top: 0; padding-top: 4px; }
+  .line.off { opacity: .6; }
+  .lhead { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .lname { font: 600 20px/1.1 "Barlow Condensed", "Arial Narrow", sans-serif; }
+  .lmeas { font-size: 13px; color: var(--muted); }
+  .lgrid { display: grid; gap: 10px; grid-template-columns: repeat(3, 1fr); }
+  .lgrid label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+  .lcalc { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 10px; margin: 10px 0 6px; background: var(--field); border-radius: 8px; padding: 10px 12px; }
+  .lcalc span { display: block; font-size: 12px; color: var(--muted); }
+  .lcalc strong { font: 600 22px/1.15 "Barlow Condensed", "Arial Narrow", sans-serif; font-variant-numeric: tabular-nums; }
+  .lcalc .p strong { color: var(--pine); }
+  .roofre { font-size: 13px; color: var(--muted); padding-top: 8px; }
+  .seg { display: flex; border: 1.5px solid var(--pine); border-radius: 9px; overflow: hidden; width: 100%; max-width: 360px; }
+  .seg button { flex: 1; border: 0; background: transparent; color: var(--pine); min-height: 46px; font: 600 16px "Barlow", sans-serif; cursor: pointer; padding: 0 6px; }
+  .seg button + button { border-left: 1.5px solid var(--pine); }
+  .seg button[aria-pressed="true"] { background: var(--pine); color: var(--pine-ink); }
+  .rgrid { display: grid; gap: 10px; grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 560px) { .rgrid { grid-template-columns: repeat(4, 1fr); } }
+  .rgrid label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .tablewrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--rule); font-size: 15px; white-space: nowrap; }
+  th { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  td.n, th.n { text-align: right; }
+  tfoot td { font-weight: 600; border-bottom: 0; }
+  .msghead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; margin: 14px 0 6px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===================== CUSTOMERS ===================== -->
+  <main id="tab_customers">
+    <div class="top">
+      <h1>TCS Lights</h1>
+      <div class="row" style="gap:24px">
+        <div><div class="stat" id="c_statTotal">0</div><div class="statl">customers</div></div>
+        <div><div class="stat" id="c_statLeft">0</div><div class="statl">not yet texted this season</div></div>
+        <div><div class="stat" id="c_statBooked">0</div><div class="statl">booked</div></div>
+      </div>
+    </div>
+
+    <div id="c_listView">
+      <div class="banner" id="c_backupBanner" hidden>No backup yet. Open the Backup tab and save one so a cleared browser can't lose your list.</div>
+      <div class="panel">
+        <label class="l" for="c_search">Search</label>
+        <input id="c_search" type="search" placeholder="Name, address, phone or note" autocomplete="off">
+        <div class="chips" id="c_chips" style="margin-top:10px" role="group" aria-label="Filter by status"></div>
+        <div class="row">
+          <div class="grow"><label class="l" for="c_areaFilter">Area</label><select id="c_areaFilter"></select></div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn primary" id="c_add" type="button">Add customer</button>
+          <button class="btn" id="c_import" type="button">Import contacts</button>
+        </div>
+      </div>
+      <section class="card">
+        <div class="msghead" style="margin-top:0"><h3 id="c_count">Customers</h3></div>
+        <div id="c_list"></div>
+        <p class="small" id="c_empty" hidden>No customers yet. Use Import contacts to bring in your list, or Add customer to start one by hand.</p>
+      </section>
+    </div>
+
+    <div id="c_detailView" hidden></div>
+  </main>
+
+  <!-- ===================== QUOTE ===================== -->
+  <main id="tab_quote" hidden>
+    <div class="band">
+      <h1>Christmas light quote</h1>
+      <label class="l" for="q_sel" style="color:var(--band-ink);opacity:.8">Customer from your list</label>
+      <select id="q_sel" aria-label="Customer from your list"></select>
+      <input class="cust" id="cust" type="text" placeholder="Name for the message" aria-label="Name for the message" autocomplete="off">
+      <div class="totals2">
+        <div><div class="big" id="bigNew">$0</div><div class="bigl">New install, takedown included</div></div>
+        <div><div class="mid" id="bigRe">$0</div><div class="bigl" id="reLabel">Reinstall next year</div></div>
+      </div>
+      <div class="minnote" id="minNote"></div>
+    </div>
+
+    <section class="card" id="q_histCard" hidden>
+      <h2>What we know about this house</h2>
+      <p class="hint" id="q_next"></p>
+      <div id="q_hist"></div>
+    </section>
+
+    <section class="card" aria-labelledby="satHead">
+      <details id="satDet">
+        <summary id="satHead">Start from a satellite view</summary>
+        <p class="hint" style="margin-top:8px">Type the address, open the satellite view, take a screenshot, then use Choose photo below. Edges seen from straight above read true. Sloped edges like gable ends measure a bit short, so check those with a tape.</p>
+        <label for="addr" class="l">Address</label>
+        <input id="addr" type="text" autocomplete="street-address" placeholder="Street, city">
+        <div class="row" style="margin-top:10px">
+          <a class="btn primary" id="mapLink" href="https://www.google.com/maps" target="_blank" rel="noopener">Open in Google Maps</a>
+          <a class="btn" id="earthLink" href="https://earth.google.com/web/" target="_blank" rel="noopener">Open in Google Earth</a>
+        </div>
+        <p class="small">In Maps, switch the layer to Satellite. Google Earth has a ruler tool, so you can measure the house width there and enter it with Set scale. A standard double garage door is about 16 ft wide and a single is about 9 ft.</p>
+      </details>
+    </section>
+
+    <div class="stage" id="stage">
+      <canvas id="cv" width="10" height="10" aria-label="Photo with lights drawn on it"></canvas>
+      <div class="empty" id="empty">
+        <p>Take a photo of the house, or pick one from your camera roll. A satellite screenshot works too.</p>
+        <button class="btn primary" id="camBtn" type="button">Take photo</button>
+        <button class="btn" id="libBtn" type="button" style="color:#cfe0d6;border-color:#cfe0d6">Choose photo</button>
+      </div>
+    </div>
+    <input id="camIn" type="file" accept="image/*" capture="environment" class="hidden">
+    <input id="libIn" type="file" accept="image/*" class="hidden">
+    <p class="hintline" id="hint" aria-live="polite"></p>
+
+    <div class="panel">
+      <h2>What are you drawing?</h2>
+      <p class="hint">Pick one, then tap the photo. Each pick prices at its own rate below.</p>
+      <div class="cats" id="cats" role="group" aria-label="What to draw"></div>
+      <div class="row" style="margin-top:12px" id="scaleRow" hidden>
+        <label for="scaleFt" class="small" style="margin:0">That length is</label>
+        <input id="scaleFt" type="number" inputmode="decimal" min="0" step="0.5" placeholder="feet" style="width:110px">
+        <button class="btn" type="button" id="preset16">16 ft double door</button>
+        <button class="btn" type="button" id="preset9">9 ft single door</button>
+        <button class="btn primary" id="scaleApply" type="button">Apply scale</button>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="finishBtn" type="button">Finish line</button>
+        <button class="btn" id="undoBtn" type="button">Undo</button>
+        <button class="btn" id="clearBtn" type="button">Clear lights</button>
+        <button class="btn" id="zoomOut" type="button" aria-label="Zoom out">&minus;</button>
+        <button class="btn" id="zoomIn" type="button" aria-label="Zoom in">+</button>
+        <button class="btn" id="newPhoto" type="button">New photo</button>
+      </div>
+      <details style="margin-top:12px">
+        <summary>Colors, pattern and look</summary>
+        <div class="patrow"><label for="preset">Pattern</label><select id="preset"></select></div>
+        <div class="swatches" id="swatches" role="group" aria-label="Light color"></div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="buildBtn" type="button" aria-pressed="false">Build my own</button>
+          <button class="btn" id="seqBack" type="button" hidden>Remove last</button>
+        </div>
+        <div class="seqprev" id="seqPrev" style="margin-top:8px" aria-live="polite"></div>
+        <p class="small" id="seqNote"></p>
+        <div class="sliders">
+          <div><label for="sizeR">Bulb size <b id="sizeV"></b></label><input id="sizeR" type="range" min="2" max="14" step="1" value="5"></div>
+          <div><label for="spaceR">Bulb spacing <b id="spaceV"></b></label><input id="spaceR" type="range" min="10" max="60" step="1" value="24"></div>
+          <div><label for="wrapR">Wrap and bush size <b id="wrapV"></b></label><input id="wrapR" type="range" min="10" max="100" step="1" value="35"></div>
+          <div><label for="duskR">Dusk <b id="duskV"></b></label><input id="duskR" type="range" min="0" max="85" step="1" value="60"></div>
+        </div>
+      </details>
+    </div>
+
+    <section class="card" aria-labelledby="qHead">
+      <h2 id="qHead">Quote lines</h2>
+      <p class="hint">Measured comes from your drawing. Use Add or subtract to correct it, or to quote something you measured with a tape and did not draw. Change any rate for this customer.</p>
+      <div class="row" style="margin-bottom:8px">
+        <span class="small" style="margin:0">Next year's lights:</span>
+        <div class="seg" role="group" aria-label="Whose lights on reinstall" id="custSeg">
+          <button type="button" data-v="mine" aria-pressed="true">Mine</button>
+          <button type="button" data-v="cust" aria-pressed="false">Customer's</button>
+        </div>
+      </div>
+      <div id="lines"></div>
+      <p class="small" id="baseNote"></p>
+    </section>
+
+    <section class="card" aria-labelledby="rHead">
+      <details>
+        <summary id="rHead">Your rates</summary>
+        <p class="hint" style="margin-top:8px">Rates save on this device. The per-line rates in Quote lines change the same saved rates, so a price you edit there stays for the next customer. Reset all rates puts back your starting prices.</p>
+        <div class="rgrid">
+          <div><label for="baseRe">Reinstall base ($)</label><input id="baseRe" type="number" inputmode="decimal" step="5" min="0"></div>
+          <div><label for="reMine">Reinstall, my lights ($/ft)</label><input id="reMine" type="number" inputmode="decimal" step="0.25" min="0"></div>
+          <div><label for="reCust">Reinstall, customer's ($/ft)</label><input id="reCust" type="number" inputmode="decimal" step="0.25" min="0"></div>
+          <div><label for="minNew">Minimum new job ($)</label><input id="minNew" type="number" inputmode="decimal" step="25" min="0"></div>
+        </div>
+        <div class="row" style="margin-top:12px"><button class="btn" id="resetRates" type="button">Reset all rates</button></div>
+        <p class="small" id="resetNote" aria-live="polite"></p>
+      </details>
+    </section>
+
+    <section class="card" aria-labelledby="sHead">
+      <h2 id="sHead">Send to the customer</h2>
+      <p class="hint">Save the mockup to your photos, then attach it to a text. Square estimates don't carry photos, so the picture goes by text and the price goes on the estimate.</p>
+      <div class="row">
+        <button class="btn primary" id="saveBtn" type="button" disabled>Save mockup image</button>
+        <button class="btn" id="q_save" type="button" disabled>Save quote to customer</button>
+      </div>
+      <p class="small" id="saveNote" aria-live="polite"></p>
+
+      <div class="msghead"><h3>Square estimate</h3></div>
+      <p class="hint" style="margin:0 0 8px">Line items to enter on the estimate.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Item</th><th class="n">Qty</th><th class="n">Each</th><th class="n">Total</th></tr></thead>
+          <tbody id="sqBody"></tbody>
+          <tfoot id="sqFoot"></tfoot>
+        </table>
+      </div>
+
+      <div class="msghead"><h3>Estimate message</h3><span class="small" style="margin:0">No prices, goes in the estimate's Message box</span></div>
+      <textarea id="estMsg" readonly aria-label="Estimate message" style="min-height:200px"></textarea>
+      <div class="row" style="margin-top:8px"><button class="btn primary" id="copyEst" type="button">Copy estimate message</button></div>
+
+      <div class="msghead"><h3>Text with prices</h3><span class="small" style="margin:0">Send with the mockup attached</span></div>
+      <textarea id="txtMsg" readonly aria-label="Text message with prices" style="min-height:200px"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn primary" id="copyTxt" type="button">Copy text</button>
+        <a class="btn" id="q_sms" href="#" aria-disabled="true">Open in Messages</a>
+      </div>
+      <p class="small" id="copyNote" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <!-- ===================== TEXTS ===================== -->
+  <main id="tab_texts" hidden>
+    <div class="top"><h1>Texts</h1><div class="statl">Edit the wording once. {name} fills in each person's name.</div></div>
+
+    <section class="card">
+      <h2>Send queue</h2>
+      <p class="hint">Pick a text and who it goes to. Tap Text and Messages opens with the number and message filled in. You press send.</p>
+      <div class="fields two">
+        <div><label class="l" for="t_pick">Text to send</label><select id="t_pick"></select></div>
+        <div><label class="l" for="t_area">Area</label><select id="t_area"></select></div>
+      </div>
+      <label class="row" style="margin-top:10px;gap:10px;min-height:44px"><input type="checkbox" id="t_hideSent" checked style="width:22px;height:22px;accent-color:var(--pine)"> <span>Hide people already sent this season</span></label>
+      <div class="msghead"><h3 id="t_count">Queue</h3></div>
+      <div id="t_queue"></div>
+    </section>
+
+    <section class="card">
+      <h2>Wording</h2>
+      <div id="t_editors"></div>
+      <div class="fields two" style="margin-top:6px">
+        <div><label class="l" for="t_nearbyDate">Date for the "nearby" text</label><input id="t_nearbyDate" type="text" placeholder="Nov 1" autocomplete="off"></div>
+        <div><label class="l" for="t_takedownDate">Date for the takedown text</label><input id="t_takedownDate" type="text" placeholder="Jan 8" autocomplete="off"></div>
+      </div>
+      <p class="small">Placeholders: {name} for the person, {date} for the date above.</p>
+    </section>
+  </main>
+
+  <!-- ===================== BACKUP ===================== -->
+  <main id="tab_backup" hidden>
+    <div class="top"><h1>Backup</h1><div class="statl" id="b_summary"></div></div>
+    <section class="card">
+      <h2>Save a backup</h2>
+      <p class="hint">Your customers live in this phone's browser only. A backup file holds your list, prices, notes, texts and rates. Email it to yourself or keep it in Files.</p>
+      <div class="row"><button class="btn primary" id="b_export" type="button">Save backup file</button></div>
+      <p class="small" id="b_exportNote" aria-live="polite"></p>
+    </section>
+    <section class="card">
+      <h2>Restore from a backup</h2>
+      <p class="hint">This replaces everything currently on this device with the file's contents.</p>
+      <input id="b_file" type="file" accept="application/json,.json" class="hidden">
+      <div class="row"><button class="btn" id="b_pick" type="button">Choose backup file</button><button class="btn danger" id="b_go" type="button" hidden>Replace everything</button></div>
+      <p class="small" id="b_note" aria-live="polite"></p>
+    </section>
+  </main>
+</div>
+
+<nav class="tabbar" aria-label="Sections">
+  <button type="button" data-tab="customers" aria-current="page">Customers</button>
+  <button type="button" data-tab="quote">Quote</button>
+  <button type="button" data-tab="texts">Texts</button>
+  <button type="button" data-tab="backup">Backup</button>
+</nav>
+
+<dialog id="dlg">
+  <h2>Press and hold the image to save it</h2>
+  <img id="dlgImg" alt="Finished mockup">
+  <button class="btn primary" id="dlgClose" type="button">Close</button>
+</dialog>
+
+<dialog id="impDlg">
+  <h2>Import contacts</h2>
+  <p class="hint">Use a contacts export (.vcf or .csv), or paste the text. Only contacts containing your keyword come in.</p>
+  <div class="fields">
+    <div><label class="l" for="i_kw">Keyword</label><input id="i_kw" type="text" placeholder="The word that marks your light customers" autocomplete="off"></div>
+    <label class="row" style="gap:10px;min-height:40px"><input type="checkbox" id="i_strip" checked style="width:22px;height:22px;accent-color:var(--pine)"> <span>Remove the keyword from names</span></label>
+    <div><label class="l" for="i_file">Contacts file</label><input id="i_file" type="file" accept=".vcf,.csv,text/vcard,text/csv,text/plain"></div>
+    <div><label class="l" for="i_text">Or paste contacts here</label><textarea id="i_text" style="min-height:90px"></textarea></div>
+  </div>
+  <div class="row" style="margin-top:10px"><button class="btn" id="i_preview" type="button">Preview</button></div>
+  <div id="i_out" style="margin-top:10px"></div>
+  <div class="row" style="margin-top:12px">
+    <button class="btn primary" id="i_go" type="button" disabled>Import</button>
+    <button class="btn" id="i_close" type="button">Close</button>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  function h(tag, attrs, kids) {
+    var e = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      var v = attrs[k];
+      if (v == null || v === false) return;
+      if (k === "class") e.className = v;
+      else if (k === "text") e.textContent = v;
+      else if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), v);
+      else if (v === true) e.setAttribute(k, "");
+      else e.setAttribute(k, v);
+    });
+    (kids || []).forEach(function (c) {
+      if (c == null || c === false) return;
+      e.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+    });
+    return e;
+  }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function num(v) { var n = parseFloat(v); return isFinite(n) ? n : 0; }
+
+  //#PURE-START
+  var CATS = [
+    { id: "c9",   name: "Roofline, commercial C9", kind: "line",  unit: "ft", roof: true, newR: 9 },
+    { id: "mag",  name: "Roofline, magnetic",      kind: "line",  unit: "ft", roof: true, newR: 10 },
+    { id: "hips", name: "Hips and ridges, C9",     kind: "line",  unit: "ft", roof: true, newR: 9 },
+    { id: "win",  name: "Windows",                 kind: "line",  unit: "ft", reR: 4,  newR: 14 },
+    { id: "gar",  name: "Garage door",             kind: "line",  unit: "ft", reR: 4,  newR: 14 },
+    { id: "pil",  name: "Pillars and columns",     kind: "wrap",  unit: "strand", one: "pillar", many: "pillars", reR: 17.5, newR: 45 },
+    { id: "tre",  name: "Trees",                   kind: "wrap",  unit: "strand", one: "tree",   many: "trees",   reR: 17.5, newR: 45 },
+    { id: "bus",  name: "Bushes",                  kind: "bush",  unit: "strand", one: "bush",   many: "bushes",  reR: 17.5, newR: 45 }
+  ];
+  function defaultCfg() {
+    var c = { customer: "", address: "", baseRe: 100, reMine: 1.5, reCust: 2, minNew: 0, cust: false, rates: {}, adjust: {} };
+    CATS.forEach(function (k) {
+      c.rates[k.id] = { n: k.newR, r: k.roof ? null : k.reR };
+      c.adjust[k.id] = 0;
+    });
+    return c;
+  }
+  function calcQuote(cfg, qtys) {
+    var rows = [], sumNew = 0, sumRe = 0, any = false;
+    CATS.forEach(function (c) {
+      var q = Math.max(0, Number(qtys[c.id]) || 0);
+      var rt = cfg.rates[c.id];
+      var rr = c.roof ? (cfg.cust ? cfg.reCust : cfg.reMine) : (Number(rt.r) || 0);
+      var nw = q * (Number(rt.n) || 0), re = q * rr;
+      if (q > 0) any = true;
+      sumNew += nw; sumRe += re;
+      rows.push({ c: c, q: q, rate: Number(rt.n) || 0, rr: rr, nw: nw, re: re });
+    });
+    return {
+      rows: rows, any: any, raw: sumNew,
+      newTotal: any ? Math.max(sumNew, Number(cfg.minNew) || 0) : 0,
+      reTotal: any ? (Number(cfg.baseRe) || 0) + sumRe : 0
+    };
+  }
+
+  // ---- phones, names, messages ----
+  function digitsOf(s) { return String(s || "").replace(/\D/g, ""); }
+  function phoneE164(s) {
+    var d = digitsOf(s);
+    if (d.length === 10) return "+1" + d;
+    if (d.length === 11 && d.charAt(0) === "1") return "+" + d;
+    return d ? "+" + d : "";
+  }
+  function smsHref(phone, body) {
+    var n = phoneE164(phone);
+    if (!n) return "";
+    return "sms:" + n + "?&body=" + encodeURIComponent(body);
+  }
+  function firstWord(s) { return String(s || "").trim().split(/\s+/)[0] || ""; }
+  function fillTemplate(t, vars) {
+    return String(t).replace(/\{(\w+)\}/g, function (m, k) { return vars[k] != null ? vars[k] : m; });
+  }
+  function seasonOf(d) { d = d || new Date(); return d.getMonth() >= 7 ? d.getFullYear() : d.getFullYear() - 1; }
+
+  // ---- contact import ----
+  function unesc(s) { return String(s || "").replace(/\\n/gi, " ").replace(/\\,/g, ",").replace(/\\;/g, ";").replace(/\\\\/g, "\\").trim(); }
+  function parseVcf(text) {
+    text = String(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n").replace(/\n[ \t]/g, "");
+    var cards = text.split(/BEGIN:VCARD/i).slice(1), out = [];
+    cards.forEach(function (c) {
+      var o = { name: "", phones: [], address: "", notes: "", raw: c }, nName = "";
+      c.split("\n").forEach(function (l) {
+        var i = l.indexOf(":"); if (i < 0) return;
+        var key = l.slice(0, i).toUpperCase().replace(/^ITEM\d+\./, ""), val = l.slice(i + 1).trim();
+        var base = key.split(";")[0];
+        if (base === "FN") o.name = unesc(val);
+        else if (base === "N") { var p = val.split(";"); nName = unesc((p[1] || "") + " " + (p[0] || "")); }
+        else if (base === "TEL") { if (digitsOf(val).length >= 7) o.phones.push(val); }
+        else if (base === "ADR") {
+          var a = val.split(";"), street = unesc(a[2]), city = unesc(a[3]), st = unesc(a[4]), zip = unesc(a[5]);
+          var line = [street, city, ((st + " " + zip).trim())].filter(Boolean).join(", ");
+          if (line && !o.address) o.address = line;
+        }
+        else if (base === "NOTE") o.notes = (o.notes ? o.notes + " " : "") + unesc(val);
+      });
+      if (!o.name) o.name = nName.trim();
+      out.push(o);
+    });
+    return out;
+  }
+  function parseCsvRows(text) {
+    var rows = [], row = [], cur = "", q = false;
+    text = String(text).replace(/^﻿/, "");
+    for (var i = 0; i < text.length; i++) {
+      var ch = text.charAt(i);
+      if (q) {
+        if (ch === '"') { if (text.charAt(i + 1) === '"') { cur += '"'; i++; } else q = false; }
+        else cur += ch;
+      } else if (ch === '"') q = true;
+      else if (ch === ",") { row.push(cur); cur = ""; }
+      else if (ch === "\n" || ch === "\r") {
+        if (ch === "\r" && text.charAt(i + 1) === "\n") i++;
+        row.push(cur); cur = "";
+        if (row.length > 1 || row[0] !== "") rows.push(row);
+        row = [];
+      } else cur += ch;
+    }
+    row.push(cur); if (row.length > 1 || row[0] !== "") rows.push(row);
+    return rows;
+  }
+  function parseCsv(text) {
+    var rows = parseCsvRows(text);
+    if (rows.length < 2) return [];
+    var head = rows[0].map(function (x) { return x.trim().toLowerCase(); });
+    function idx(re) { var r = []; head.forEach(function (x, i) { if (re.test(x)) r.push(i); }); return r; }
+    var nameCols = idx(/^(name|display name|full name)$/);
+    var first = idx(/^(first name|given name)$/), last = idx(/^(last name|family name)$/);
+    var phoneCols = idx(/phone.*(value|number)|^(phone|mobile|home|work|cell)\b/);
+    var notesCols = idx(/^notes?$/);
+    var addrFmt = idx(/address.*(formatted)/), street = idx(/address.*street/), city = idx(/address.*city/), reg = idx(/address.*(region|state)/), zip = idx(/address.*(postal|zip)/);
+    var out = [];
+    rows.slice(1).forEach(function (r) {
+      var g = function (i) { return (r[i] || "").trim(); };
+      var name = nameCols.length ? g(nameCols[0]) : "";
+      if (!name) name = ((first.length ? g(first[0]) : "") + " " + (last.length ? g(last[0]) : "")).trim();
+      var phones = [];
+      phoneCols.forEach(function (i) { String(r[i] || "").split(":::").forEach(function (p) { if (digitsOf(p).length >= 7) phones.push(p.trim()); }); });
+      var address = addrFmt.length ? g(addrFmt[0]).replace(/\s*\n\s*/g, ", ") : "";
+      if (!address && street.length) address = [g(street[0]), city.length ? g(city[0]) : "", ((reg.length ? g(reg[0]) : "") + " " + (zip.length ? g(zip[0]) : "")).trim()].filter(Boolean).join(", ");
+      out.push({ name: name, phones: phones, address: address, notes: notesCols.length ? g(notesCols[0]) : "", raw: r.join(" ") });
+    });
+    return out;
+  }
+  function parseContacts(text, filename) {
+    var t = String(text || "");
+    if (/BEGIN:VCARD/i.test(t)) return parseVcf(t);
+    if (/\.vcf$/i.test(filename || "")) return parseVcf(t);
+    return parseCsv(t);
+  }
+  function stripKeyword(name, kw) {
+    if (!kw) return name;
+    var esc = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return name.replace(new RegExp("[\\s\\-_,:;]*" + esc + "[\\s\\-_,:;]*", "ig"), " ").replace(/\s+/g, " ").trim();
+  }
+  function splitNames(name) {
+    var parts = String(name || "").split("/").map(function (x) { return x.trim(); }).filter(Boolean);
+    return { primary: parts[0] || "", spouse: parts[1] || "" };
+  }
+  function normAddr(a) {
+    return String(a || "").toLowerCase().replace(/[.,#]/g, " ").replace(/\b(street)\b/g, "st").replace(/\b(avenue)\b/g, "ave").replace(/\b(drive)\b/g, "dr")
+      .replace(/\b(road)\b/g, "rd").replace(/\b(lane)\b/g, "ln").replace(/\b(court)\b/g, "ct").replace(/\b(place)\b/g, "pl").replace(/\b(circle)\b/g, "cir")
+      .replace(/\b(north)\b/g, "n").replace(/\b(south)\b/g, "s").replace(/\b(east)\b/g, "e").replace(/\b(west)\b/g, "w")
+      .replace(/\b(wa|washington)\b/g, "").replace(/\b\d{5}(-\d{4})?\b/g, "").replace(/\s+/g, " ").trim();
+  }
+  function sameFirst(a, b) {
+    a = firstWord(a).toLowerCase(); b = firstWord(b).toLowerCase();
+    if (!a || !b) return false;
+    if (a === b) return true;
+    var s = a.length < b.length ? a : b, l = a.length < b.length ? b : a;
+    return s.length >= 3 && l.indexOf(s) === 0;
+  }
+  // contacts: [{name, phones, address, notes}] already keyword-filtered and stripped. Returns households.
+  function mergeHouseholds(contacts) {
+    var n = contacts.length, parent = [], i, j;
+    for (i = 0; i < n; i++) parent.push(i);
+    function find(x) { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; }
+    function union(a, b) { a = find(a); b = find(b); if (a !== b) parent[b] = a; }
+    var parsed = contacts.map(function (c) { return splitNames(c.name); });
+    for (i = 0; i < n; i++) for (j = i + 1; j < n; j++) {
+      var ai = normAddr(contacts[i].address), aj = normAddr(contacts[j].address);
+      var byAddr = ai && aj && ai === aj;
+      var pi = parsed[i], pj = parsed[j];
+      var byPair = pi.spouse && pj.spouse && sameFirst(pi.primary, pj.spouse) && sameFirst(pi.spouse, pj.primary);
+      if (byAddr || byPair) union(i, j);
+    }
+    var groups = {}, order = [];
+    for (i = 0; i < n; i++) { var r = find(i); if (!groups[r]) { groups[r] = []; order.push(r); } groups[r].push(i); }
+    return order.map(function (r) {
+      var idxs = groups[r], people = [], address = "", notes = [], spouse = "";
+      idxs.forEach(function (k) {
+        var c = contacts[k], p = parsed[k];
+        if (!address && c.address) address = c.address;
+        if (c.notes) notes.push(c.notes);
+        var ph = c.phones.slice();
+        people.push({ name: p.primary || c.name, phone: ph[0] || "", sent: {} });
+        if (ph.length > 1) notes.push("Other numbers for " + (p.primary || c.name) + ": " + ph.slice(1).join(", "));
+        if (p.spouse && !idxs.some(function (m) { return sameFirst(parsed[m].primary, p.spouse); })) spouse = spouse || p.spouse;
+      });
+      return { people: people, spouse: spouse, address: address, notes: notes.join(" | ") };
+    });
+  }
+  //#PURE-END
+
+  // ---------- storage ----------
+  var DBKEY = "tcslights:db";
+  var STATUS = [
+    { id: "none", name: "Not contacted" }, { id: "asked", name: "Asked" }, { id: "booked", name: "Booked" },
+    { id: "installed", name: "Installed" }, { id: "down", name: "Taken down" }, { id: "skip", name: "Not this year" }
+  ];
+  var TEMPLATES = [
+    { id: "opener", name: "Season opener", text: "Hey {name}, it's Ethen. Hope all is well! Lights season is starting back up. Want us to put you on the schedule this year? Just reply and I'll get you set up." },
+    { id: "nearby", name: "Nearby on a date", text: "Hey {name}, this is Ethen. Hope all is well! We are installing lights again and will be nearby on {date}. Do you want us on the schedule?" },
+    { id: "done", name: "All done", text: "Hey {name}, all done! We hope you enjoy the lights. Let us know if you have any questions or concerns!" },
+    { id: "takedown", name: "Takedown coming", text: "Hey {name}, it's Ethen. We'll be taking down lights in your area around {date}. Let me know if that doesn't work or if you want to change anything for next year." }
+  ];
+  function defaultDB() {
+    var t = {}; TEMPLATES.forEach(function (x) { t[x.id] = x.text; });
+    return { v: 1, customers: [], templates: t, vars: { nearby: "", takedown: "" }, cfg: null, lastExport: null };
+  }
+  var storageOk = true;
+  function loadDB() {
+    var d = defaultDB();
+    try {
+      var raw = localStorage.getItem(DBKEY);
+      if (raw) {
+        var s = JSON.parse(raw);
+        if (Array.isArray(s.customers)) d.customers = s.customers;
+        if (s.templates) TEMPLATES.forEach(function (x) { if (typeof s.templates[x.id] === "string") d.templates[x.id] = s.templates[x.id]; });
+        if (s.vars) { d.vars.nearby = s.vars.nearby || ""; d.vars.takedown = s.vars.takedown || ""; }
+        d.cfg = s.cfg || null; d.lastExport = s.lastExport || null;
+      }
+    } catch (e) { storageOk = false; }
+    return d;
+  }
+  var DB = loadDB();
+  function saveDB() {
+    try { localStorage.setItem(DBKEY, JSON.stringify(DB)); storageOk = true; }
+    catch (e) { storageOk = false; }
+    var b = $("c_backupBanner");
+    if (!storageOk) { b.hidden = false; b.textContent = "This browser would not save your changes. Check that private browsing is off, then reload."; }
+  }
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+
+  var SEASON = seasonOf();
+  function uid() { return "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  function newCustomer() {
+    return { id: uid(), people: [{ name: "", phone: "", sent: {} }], spouse: "", address: "", area: "", status: "none", notes: "", next: "", history: [] };
+  }
+  function custById(id) { return DB.customers.filter(function (c) { return c.id === id; })[0]; }
+  function displayName(c) {
+    var names = c.people.map(function (p) { return p.name; }).filter(Boolean);
+    if (c.spouse) names.push(c.spouse);
+    return names.join(" & ") || "(no name)";
+  }
+  function sortKey(c) { return displayName(c).toLowerCase(); }
+  function sentKey(tid) { return tid + ":" + SEASON; }
+  function isSent(p, tid) { return !!(p.sent && p.sent[sentKey(tid)]); }
+  function tplText(tid) { return DB.templates[tid]; }
+  function tplVars(name) {
+    return { name: firstWord(name) || "there", date: "" };
+  }
+  function messageFor(tid, person) {
+    var v = tplVars(person.name);
+    v.date = tid === "takedown" ? (DB.vars.takedown || "{date}") : (DB.vars.nearby || "{date}");
+    return fillTemplate(tplText(tid), v);
+  }
+  function markSent(person, tid) {
+    if (!person.sent) person.sent = {};
+    person.sent[sentKey(tid)] = today();
+    saveDB();
+  }
+  function copyText(text, noteEl, okMsg) {
+    function done(ok) { if (noteEl) noteEl.textContent = ok ? (okMsg || "Copied.") : "Couldn't copy automatically. Press and hold the text to copy it."; }
+    function fb() {
+      try { var ta = h("textarea", { style: "position:fixed;opacity:0;left:-999px" }); ta.value = text; document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, 99999);
+        var ok = document.execCommand("copy"); ta.remove(); done(ok); } catch (e) { done(false); }
+    }
+    try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { done(true); }, fb); else fb(); } catch (e) { fb(); }
+  }
+  function download(blob, filename) {
+    var a = h("a", { href: URL.createObjectURL(blob), download: filename });
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  }
+  function shareOrDownload(blob, filename, onDone, onFallbackDialog) {
+    var file = null;
+    try { file = new File([blob], filename, { type: blob.type }); } catch (e) {}
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file] }).then(function () { onDone("shared"); }, function (err) {
+        if (err && err.name === "AbortError") onDone("cancelled");
+        else if (onFallbackDialog) onFallbackDialog(); else { download(blob, filename); onDone("downloaded"); }
+      });
+      return;
+    }
+    if (onFallbackDialog && navigator.maxTouchPoints > 0) { onFallbackDialog(); return; }
+    download(blob, filename); onDone("downloaded");
+  }
+
+  // ---------- tabs ----------
+  var TABS = ["customers", "quote", "texts", "backup"];
+  var currentTab = "customers";
+  function showTab(t) {
+    currentTab = t;
+    TABS.forEach(function (x) { $("tab_" + x).hidden = x !== t; });
+    document.querySelectorAll(".tabbar button").forEach(function (b) { if (b.dataset.tab === t) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+    window.scrollTo(0, 0);
+    if (t === "customers") { openList(); }
+    if (t === "quote") { fillQuoteSelect(); applyZoom(); update(); }
+    if (t === "texts") renderTexts();
+    if (t === "backup") renderBackup();
+  }
+  document.querySelectorAll(".tabbar button").forEach(function (b) { b.addEventListener("click", function () { showTab(b.dataset.tab); }); });
+
+  // ====================== CUSTOMERS ======================
+  var filt = { q: "", status: "all", area: "" };
+  var openId = null;
+
+  function areasList() {
+    var a = {};
+    DB.customers.forEach(function (c) { if (c.area && c.area.trim()) a[c.area.trim()] = 1; });
+    return Object.keys(a).sort();
+  }
+  function fillAreaSelect(sel, current, allLabel) {
+    sel.textContent = "";
+    sel.appendChild(h("option", { value: "", text: allLabel }));
+    areasList().forEach(function (a) { sel.appendChild(h("option", { value: a, text: a })); });
+    sel.value = current || "";
+    if (sel.value !== (current || "")) sel.value = "";
+  }
+  function statusName(id) { return STATUS.filter(function (s) { return s.id === id; })[0].name; }
+
+  function renderStats() {
+    $("c_statTotal").textContent = DB.customers.length;
+    var left = 0, booked = 0;
+    DB.customers.forEach(function (c) {
+      if (c.status === "booked") booked++;
+      if (c.status !== "skip" && c.people.some(function (p) { return phoneE164(p.phone) && !isSent(p, "opener") && !isSent(p, "nearby"); })) left++;
+    });
+    $("c_statLeft").textContent = left;
+    $("c_statBooked").textContent = booked;
+    $("c_backupBanner").hidden = !(DB.customers.length > 0 && !DB.lastExport) || !storageOk && false;
+    if (!storageOk) { $("c_backupBanner").hidden = false; }
+  }
+
+  function renderChips() {
+    var host = $("c_chips"); host.textContent = "";
+    [{ id: "all", name: "All" }].concat(STATUS).forEach(function (s) {
+      host.appendChild(h("button", { type: "button", class: "chip", "aria-pressed": String(filt.status === s.id), text: s.name,
+        onclick: function () { filt.status = s.id; renderList(); renderChips(); } }));
+    });
+  }
+
+  function matches(c) {
+    if (filt.status !== "all" && c.status !== filt.status) return false;
+    if (filt.area && (c.area || "").trim() !== filt.area) return false;
+    var q = filt.q.trim().toLowerCase();
+    if (!q) return true;
+    var qd = digitsOf(q);
+    var hay = (displayName(c) + " " + c.address + " " + c.area + " " + c.notes + " " + c.next).toLowerCase();
+    if (hay.indexOf(q) >= 0) return true;
+    if (qd.length >= 3) return c.people.some(function (p) { return digitsOf(p.phone).indexOf(qd) >= 0; });
+    return false;
+  }
+
+  function renderList() {
+    var host = $("c_list"); host.textContent = "";
+    var list = DB.customers.filter(matches).sort(function (a, b) { return sortKey(a) < sortKey(b) ? -1 : 1; });
+    $("c_count").textContent = list.length === DB.customers.length ? list.length + " customers" : list.length + " of " + DB.customers.length;
+    $("c_empty").hidden = DB.customers.length > 0;
+    list.forEach(function (c) {
+      var last = c.history.length ? c.history[c.history.length - 1] : null;
+      var sub = [c.address, c.area].filter(Boolean).join(" · ");
+      var priceTxt = last ? " · " + histShort(last) : "";
+      host.appendChild(h("button", { type: "button", class: "cust-row", onclick: function () { openDetail(c.id); } }, [
+        h("div", { class: "grow" }, [
+          h("div", { class: "cust-name", text: displayName(c) }),
+          h("div", { class: "cust-sub", text: (sub || "No address yet") + priceTxt })
+        ]),
+        h("span", { class: "pill " + c.status, text: statusName(c.status) })
+      ]));
+    });
+  }
+  function histShort(e) {
+    var amt = e.newTotal != null ? e.newTotal : e.charged;
+    return e.season + ": " + (amt != null ? moneyS(amt) : "noted");
+  }
+  function moneyS(n) {
+    var r = Math.round(n * 100) / 100, whole = Math.abs(r % 1) < 0.001;
+    return "$" + r.toLocaleString("en-US", whole ? { maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function openList() {
+    openId = null;
+    $("c_detailView").hidden = true; $("c_listView").hidden = false;
+    fillAreaSelect($("c_areaFilter"), filt.area, "All areas");
+    $("c_search").value = filt.q;
+    renderChips(); renderList(); renderStats();
+  }
+  $("c_search").addEventListener("input", function () { filt.q = this.value; renderList(); });
+  $("c_areaFilter").addEventListener("change", function () { filt.area = this.value; renderList(); });
+  $("c_add").addEventListener("click", function () {
+    var c = newCustomer(); DB.customers.push(c); saveDB(); openDetail(c.id, true);
+  });
+
+  function histLine(e) {
+    var parts = [];
+    if (e.newTotal != null) parts.push("New " + moneyS(e.newTotal) + (e.reTotal != null ? ", reinstall " + moneyS(e.reTotal) : "") + (e.cust ? " (their lights)" : ""));
+    else if (e.charged != null) parts.push("Charged " + moneyS(e.charged));
+    if (e.lines && e.lines.length) parts.push(e.lines.map(function (l) { return l.n + " " + l.q + (l.u === "ft" ? " ft" : ""); }).join(", "));
+    if (e.note) parts.push(e.note);
+    return parts.join(" · ");
+  }
+  function renderHistory(host, c, onChange) {
+    host.textContent = "";
+    if (!c.history.length) host.appendChild(h("p", { class: "small", text: "No prices saved yet." }));
+    c.history.slice().reverse().forEach(function (e) {
+      host.appendChild(h("div", { class: "hist" }, [
+        h("div", { class: "grow" }, [h("b", { text: String(e.season) }), h("div", { text: histLine(e) || "No details" })]),
+        h("button", { type: "button", class: "x", "aria-label": "Remove this entry", text: "×", onclick: function () {
+          c.history = c.history.filter(function (x) { return x !== e; }); saveDB(); onChange(); } })
+      ]));
+    });
+  }
+
+  function openDetail(id, isNew) {
+    var c = custById(id); if (!c) { openList(); return; }
+    openId = id;
+    $("c_listView").hidden = true;
+    var host = $("c_detailView"); host.hidden = false; host.textContent = "";
+    window.scrollTo(0, 0);
+
+    function field(label, input) { var i = "d_" + Math.random().toString(36).slice(2, 8); input.id = i; return h("div", null, [h("label", { class: "l", for: i, text: label }), input]); }
+    function bind(input, obj, key, after) { input.value = obj[key] || ""; input.addEventListener("input", function () { obj[key] = this.value; saveDB(); if (after) after(); }); return input; }
+    var titleEl = h("h2", { text: displayName(c) });
+    function retitle() { titleEl.textContent = displayName(c); }
+
+    host.appendChild(h("div", { class: "row", style: "margin-bottom:12px" }, [
+      h("button", { type: "button", class: "btn", text: "Back to list", onclick: openList }),
+      h("div", { class: "grow" }),
+    ]));
+
+    // identity + status
+    var status = h("select"); STATUS.forEach(function (s) { status.appendChild(h("option", { value: s.id, text: s.name })); });
+    status.value = c.status; status.addEventListener("change", function () { c.status = this.value; saveDB(); });
+    var areaIn = h("input", { type: "text", list: "d_areas", autocomplete: "off", placeholder: "Neighborhood or town" });
+    var dl = h("datalist", { id: "d_areas" }); areasList().forEach(function (a) { dl.appendChild(h("option", { value: a })); });
+    host.appendChild(h("section", { class: "card" }, [
+      titleEl,
+      h("div", { class: "fields two", style: "margin-top:10px" }, [
+        field("Status this season", status),
+        field("Area", bind(areaIn, c, "area")),
+        field("Address", bind(h("input", { type: "text", autocomplete: "off", placeholder: "Street, city" }), c, "address")),
+        field("Spouse or partner without their own number", bind(h("input", { type: "text", autocomplete: "off" }), c, "spouse", retitle))
+      ]),
+      dl
+    ]));
+
+    // people
+    var peopleHost = h("div");
+    function renderPeople() {
+      peopleHost.textContent = "";
+      c.people.forEach(function (p, pi) {
+        var nameIn = bind(h("input", { type: "text", autocomplete: "off", placeholder: "Name as you text them" }), p, "name", function () { retitle(); refreshSends(); });
+        var phoneIn = bind(h("input", { type: "tel", autocomplete: "off", placeholder: "Phone number", inputmode: "tel" }), p, "phone", refreshSends);
+        var sends = h("div", { style: "margin-top:8px" });
+        function refreshSends() {
+          sends.textContent = "";
+          var ok = !!phoneE164(p.phone);
+          TEMPLATES.forEach(function (t) {
+            var msg = messageFor(t.id, p);
+            var sentTxt = isSent(p, t.id) ? "Sent " + p.sent[sentKey(t.id)] : "";
+            var link = h("a", { class: "btn sm primary", href: ok ? smsHref(p.phone, msg) : "#", "aria-disabled": ok ? null : "true", text: "Text",
+              onclick: function () { markSent(p, t.id); s.textContent = "Sent " + today(); s.className = "s sent"; } });
+            var s = h("div", { class: "s" + (sentTxt ? " sent" : ""), text: sentTxt });
+            var note = h("span");
+            sends.appendChild(h("div", { class: "sendrow" }, [
+              h("div", null, [h("div", { class: "t", text: t.name }), s]),
+              link,
+              h("button", { type: "button", class: "btn sm", text: "Copy", onclick: function () { copyText(msg, s, "Message copied."); } })
+            ]));
+          });
+        }
+        refreshSends();
+        peopleHost.appendChild(h("div", { class: "person" }, [
+          h("div", { class: "fields two" }, [field("Name", nameIn), field("Phone", phoneIn)]),
+          sends,
+          c.people.length > 1 ? h("div", { class: "row", style: "margin-top:8px" }, [
+            h("button", { type: "button", class: "btn sm danger", text: "Remove this person", onclick: function () { c.people.splice(pi, 1); saveDB(); retitle(); renderPeople(); } })]) : null
+        ]));
+      });
+    }
+    renderPeople();
+    host.appendChild(h("section", { class: "card" }, [
+      h("h2", { text: "People and texts" }),
+      h("p", { class: "hint", text: "Each person has their own number. Tap Text and Messages opens with their number and the message ready. You press send." }),
+      peopleHost,
+      h("div", { class: "row" }, [h("button", { type: "button", class: "btn", text: "Add another person", onclick: function () { c.people.push({ name: "", phone: "", sent: {} }); saveDB(); renderPeople(); } })])
+    ]));
+
+    // notes
+    host.appendChild(h("section", { class: "card" }, [
+      h("h2", { text: "Notes" }),
+      h("div", { class: "fields" }, [
+        field("Next time charge, what to quote", bind(h("textarea", { style: "min-height:80px", placeholder: "Bigger than it looks, quote $550 or more" }), c, "next")),
+        field("Notes about the house", bind(h("textarea", { style: "min-height:80px", placeholder: "Gate code, dog, hard roof, which outlet" }), c, "notes"))
+      ])
+    ]));
+
+    // history
+    var histHost = h("div");
+    var yIn = h("input", { type: "number", inputmode: "numeric", value: String(SEASON), step: "1" });
+    var aIn = h("input", { type: "number", inputmode: "decimal", step: "5", placeholder: "Amount charged" });
+    var nIn = h("input", { type: "text", autocomplete: "off", placeholder: "Note, optional" });
+    function showHist() { renderHistory(histHost, c, showHist); }
+    showHist();
+    host.appendChild(h("section", { class: "card" }, [
+      h("h2", { text: "What we charged" }),
+      histHost,
+      h("div", { class: "msghead" }, [h("h3", { text: "Add a past price" })]),
+      h("div", { class: "fields two" }, [field("Season", yIn), field("Amount ($)", aIn), field("Note", nIn)]),
+      h("div", { class: "row", style: "margin-top:10px" }, [
+        h("button", { type: "button", class: "btn", text: "Add to history", onclick: function () {
+          var amt = parseFloat(aIn.value); if (!isFinite(amt) && !nIn.value.trim()) return;
+          c.history.push({ id: uid(), season: parseInt(yIn.value, 10) || SEASON, charged: isFinite(amt) ? amt : null, note: nIn.value.trim() });
+          c.history.sort(function (a, b) { return a.season - b.season; });
+          aIn.value = ""; nIn.value = ""; saveDB(); showHist(); } }),
+        h("button", { type: "button", class: "btn primary", text: "Quote this house", onclick: function () { $("q_sel").value = c.id; showTab("quote"); $("q_sel").value = c.id; selectQuoteCustomer(c.id); } })
+      ])
+    ]));
+
+    // delete
+    var armed = false, delBtn;
+    delBtn = h("button", { type: "button", class: "btn danger", text: "Delete this customer", onclick: function () {
+      if (!armed) { armed = true; delBtn.textContent = "Tap again to delete"; setTimeout(function () { armed = false; delBtn.textContent = "Delete this customer"; }, 4000); return; }
+      DB.customers = DB.customers.filter(function (x) { return x.id !== c.id; }); saveDB(); openList(); } });
+    host.appendChild(h("div", { class: "row", style: "margin-bottom:16px" }, [delBtn]));
+    if (isNew) { var f = host.querySelector("input[type=text]"); }
+  }
+
+  // ---------- import ----------
+  var impParsed = null;
+  function impDlgOpen() { $("i_out").textContent = ""; $("i_go").disabled = true; impParsed = null; var d = $("impDlg"); if (d.showModal) d.showModal(); else d.setAttribute("open", ""); }
+  function impDlgClose() { var d = $("impDlg"); if (d.close) d.close(); else d.removeAttribute("open"); }
+  $("c_import").addEventListener("click", impDlgOpen);
+  $("i_close").addEventListener("click", impDlgClose);
+  var impFileText = "", impFileName = "";
+  $("i_file").addEventListener("change", function () {
+    var f = this.files[0]; if (!f) return;
+    var r = new FileReader(); r.onload = function () { impFileText = String(r.result); impFileName = f.name; $("i_out").textContent = "Loaded " + f.name + ". Press Preview."; };
+    r.readAsText(f);
+  });
+  function existingPhones() { var s = {}; DB.customers.forEach(function (c) { c.people.forEach(function (p) { var d = digitsOf(p.phone).slice(-10); if (d) s[d] = 1; }); }); return s; }
+  $("i_preview").addEventListener("click", function () {
+    var text = $("i_text").value.trim() ? $("i_text").value : impFileText;
+    var out = $("i_out"); out.textContent = "";
+    if (!text) { out.textContent = "Choose a file or paste your contacts first."; return; }
+    var kw = $("i_kw").value.trim();
+    var all = parseContacts(text, $("i_text").value.trim() ? "" : impFileName);
+    var picked = all.filter(function (c) { return !kw || (c.raw || "").toLowerCase().indexOf(kw.toLowerCase()) >= 0; });
+    var strip = $("i_strip").checked;
+    var contacts = picked.map(function (c) { return { name: strip ? stripKeyword(c.name, kw) : c.name, phones: c.phones, address: c.address, notes: c.notes }; })
+      .filter(function (c) { return c.name || c.phones.length; });
+    var hh = mergeHouseholds(contacts);
+    var have = existingPhones(), dup = 0, fresh = [];
+    hh.forEach(function (g) {
+      var isDup = g.people.some(function (p) { var d = digitsOf(p.phone).slice(-10); return d && have[d]; });
+      if (isDup) dup++; else fresh.push(g);
+    });
+    impParsed = fresh;
+    var noPhone = fresh.filter(function (g) { return !g.people.some(function (p) { return phoneE164(p.phone); }); }).length;
+    out.appendChild(h("p", { text: "Read " + all.length + " contacts. " + picked.length + " match" + (kw ? " \"" + kw + "\"" : "") + ", merged into " + hh.length + " households." +
+      (dup ? " " + dup + " already in your list and skipped." : "") }));
+    out.appendChild(h("p", { class: "small", text: fresh.length + " ready to import" + (noPhone ? ", " + noPhone + " without a phone number" : "") + "." }));
+    fresh.slice(0, 8).forEach(function (g) {
+      out.appendChild(h("div", { class: "cust-sub", text: displayName({ people: g.people, spouse: g.spouse }) + (g.people[0] && g.people[0].phone ? " · " + g.people.map(function (p) { return p.phone; }).filter(Boolean).join(", ") : "") + (g.address ? " · " + g.address : "") }));
+    });
+    if (fresh.length > 8) out.appendChild(h("div", { class: "cust-sub", text: "and " + (fresh.length - 8) + " more" }));
+    $("i_go").disabled = fresh.length === 0;
+  });
+  $("i_go").addEventListener("click", function () {
+    if (!impParsed || !impParsed.length) return;
+    impParsed.forEach(function (g) {
+      DB.customers.push({ id: uid(), people: g.people, spouse: g.spouse || "", address: g.address || "", area: "", status: "none", notes: g.notes || "", next: "", history: [] });
+    });
+    var n = impParsed.length; impParsed = null; saveDB();
+    $("i_out").textContent = "Imported " + n + " customers."; $("i_go").disabled = true;
+    openList();
+  });
+
+  // ====================== TEXTS ======================
+  function renderTexts() {
+    var host = $("t_editors"); host.textContent = "";
+    TEMPLATES.forEach(function (t) {
+      var ta = h("textarea", { id: "t_ed_" + t.id, style: "min-height:92px" });
+      ta.value = DB.templates[t.id];
+      ta.addEventListener("input", function () { DB.templates[t.id] = this.value; saveDB(); renderQueue(); });
+      host.appendChild(h("div", { style: "margin-bottom:12px" }, [
+        h("div", { class: "row", style: "justify-content:space-between" }, [
+          h("label", { class: "l", for: "t_ed_" + t.id, text: t.name, style: "margin:0" }),
+          h("button", { type: "button", class: "btn sm", text: "Reset wording", onclick: function () { DB.templates[t.id] = t.text; saveDB(); ta.value = t.text; renderQueue(); } })
+        ]), ta
+      ]));
+    });
+    $("t_nearbyDate").value = DB.vars.nearby; $("t_takedownDate").value = DB.vars.takedown;
+    var pick = $("t_pick"), cur = pick.value || "opener"; pick.textContent = "";
+    TEMPLATES.forEach(function (t) { pick.appendChild(h("option", { value: t.id, text: t.name })); });
+    pick.value = cur;
+    fillAreaSelect($("t_area"), $("t_area").value, "All areas");
+    renderQueue();
+  }
+  $("t_nearbyDate").addEventListener("input", function () { DB.vars.nearby = this.value; saveDB(); renderQueue(); });
+  $("t_takedownDate").addEventListener("input", function () { DB.vars.takedown = this.value; saveDB(); renderQueue(); });
+  ["t_pick", "t_area", "t_hideSent"].forEach(function (id) { $(id).addEventListener("change", renderQueue); });
+
+  function renderQueue() {
+    var tid = $("t_pick").value || "opener", area = $("t_area").value, hide = $("t_hideSent").checked;
+    var host = $("t_queue"); host.textContent = "";
+    var rows = [];
+    DB.customers.slice().sort(function (a, b) { return sortKey(a) < sortKey(b) ? -1 : 1; }).forEach(function (c) {
+      if (c.status === "skip") return;
+      if (area && (c.area || "").trim() !== area) return;
+      c.people.forEach(function (p) {
+        if (!phoneE164(p.phone)) return;
+        if (hide && isSent(p, tid)) return;
+        rows.push({ c: c, p: p });
+      });
+    });
+    $("t_count").textContent = rows.length + (rows.length === 1 ? " person" : " people") + " to text";
+    if (!rows.length) host.appendChild(h("p", { class: "small", text: DB.customers.length ? "Nobody left in this list." : "Add or import customers first." }));
+    rows.forEach(function (r) {
+      var msg = messageFor(tid, r.p);
+      var s = h("div", { class: "s" + (isSent(r.p, tid) ? " sent" : ""), text: isSent(r.p, tid) ? "Sent " + r.p.sent[sentKey(tid)] : [r.c.address, r.c.area].filter(Boolean).join(" · ") });
+      host.appendChild(h("div", { class: "sendrow" }, [
+        h("div", null, [h("div", { class: "t", text: (firstWord(r.p.name) || "(no name)") + (r.c.people.length > 1 || r.c.spouse ? "  (" + displayName(r.c) + ")" : "") }), s]),
+        h("a", { class: "btn sm primary", href: smsHref(r.p.phone, msg), text: "Text", onclick: function () { markSent(r.p, tid); s.textContent = "Sent " + today(); s.className = "s sent"; } }),
+        h("button", { type: "button", class: "btn sm", text: "Copy", onclick: function () { copyText(msg, s, "Message copied."); } })
+      ]));
+    });
+  }
+
+  // ====================== BACKUP ======================
+  function renderBackup() {
+    var n = DB.customers.length;
+    $("b_summary").textContent = n + " customers saved on this device. " + (DB.lastExport ? "Last backup " + DB.lastExport + "." : "No backup yet.");
+  }
+  $("b_export").addEventListener("click", function () {
+    var blob = new Blob([JSON.stringify(DB, null, 1)], { type: "application/json" });
+    shareOrDownload(blob, "tcs-lights-backup-" + today() + ".json", function (how) {
+      if (how === "cancelled") { $("b_exportNote").textContent = "Cancelled."; return; }
+      DB.lastExport = today(); saveDB(); renderBackup();
+      $("b_exportNote").textContent = how === "shared" ? "Backup shared. Choose Save to Files or email it to yourself." : "Backup file saved to your downloads.";
+    });
+  });
+  var restoreData = null;
+  $("b_pick").addEventListener("click", function () { $("b_file").click(); });
+  $("b_file").addEventListener("change", function () {
+    var f = this.files[0]; if (!f) return;
+    var r = new FileReader();
+    r.onload = function () {
+      try {
+        var d = JSON.parse(String(r.result));
+        if (!d || !Array.isArray(d.customers)) throw new Error("bad");
+        restoreData = d; $("b_go").hidden = false;
+        $("b_note").textContent = "Found " + d.customers.length + " customers in " + f.name + ". Tap Replace everything to restore them.";
+      } catch (e) { restoreData = null; $("b_go").hidden = true; $("b_note").textContent = "That file isn't a TCS Lights backup."; }
+    };
+    r.readAsText(f); this.value = "";
+  });
+  var restoreArmed = false;
+  $("b_go").addEventListener("click", function () {
+    if (!restoreData) return;
+    if (!restoreArmed) { restoreArmed = true; this.textContent = "Tap again to confirm"; var b = this; setTimeout(function () { restoreArmed = false; b.textContent = "Replace everything"; }, 4000); return; }
+    var d = defaultDB();
+    d.customers = restoreData.customers;
+    if (restoreData.templates) TEMPLATES.forEach(function (x) { if (typeof restoreData.templates[x.id] === "string") d.templates[x.id] = restoreData.templates[x.id]; });
+    if (restoreData.vars) d.vars = { nearby: restoreData.vars.nearby || "", takedown: restoreData.vars.takedown || "" };
+    d.cfg = restoreData.cfg || null; d.lastExport = restoreData.lastExport || null;
+    DB = d; saveDB(); restoreData = null; this.hidden = true; this.textContent = "Replace everything";
+    cfg = loadCfg(); buildLines(); syncRateInputs();
+    $("b_note").textContent = "Restored " + DB.customers.length + " customers."; renderBackup();
+  });
+
+  // ====================== QUOTE (sketch + pricing) ======================
+  function loadCfg() {
+    var d = defaultCfg(), s = DB.cfg;
+    if (s) {
+      ["customer", "address"].forEach(function (k) { if (typeof s[k] === "string") d[k] = s[k]; });
+      ["baseRe", "reMine", "reCust", "minNew"].forEach(function (k) { if (isFinite(s[k])) d[k] = Number(s[k]); });
+      if (typeof s.cust === "boolean") d.cust = s.cust;
+      if (s.rates) CATS.forEach(function (c) {
+        var r = s.rates[c.id];
+        if (r && isFinite(r.n)) d.rates[c.id].n = Number(r.n);
+        if (r && !c.roof && isFinite(r.r)) d.rates[c.id].r = Number(r.r);
+      });
+    }
+    return d;
+  }
+  var cfg = loadCfg();
+  function saveCfg() {
+    DB.cfg = { customer: cfg.customer, address: cfg.address, baseRe: cfg.baseRe, reMine: cfg.reMine, reCust: cfg.reCust, minNew: cfg.minNew, cust: cfg.cust, rates: cfg.rates };
+    saveDB();
+  }
+  var money = moneyS;
+
+  var cv = $("cv"), ctx = cv.getContext("2d"), stage = $("stage");
+  var COLORS = {
+    warm:   { name: "Warm white", rgb: [255, 205, 120] },
+    cool:   { name: "Cool white", rgb: [205, 230, 255] },
+    green:  { name: "Green",      rgb: [70, 255, 100] },
+    red:    { name: "Red",        rgb: [255, 70, 60] },
+    blue:   { name: "Blue",       rgb: [70, 130, 255] },
+    orange: { name: "Orange",     rgb: [255, 140, 30] },
+    purple: { name: "Purple",     rgb: [190, 90, 255] }
+  };
+  var PRESETS = [
+    { id: "custom", name: "Solid or my own", seq: null },
+    { id: "rg",   name: "Red and green",            seq: ["red", "green"] },
+    { id: "rw",   name: "Candy cane (red and white)", seq: ["red", "cool"] },
+    { id: "wg",   name: "Warm white and green",     seq: ["warm", "green"] },
+    { id: "rwg",  name: "Red, warm white, green",   seq: ["red", "warm", "green"] },
+    { id: "multi", name: "Classic multicolor",      seq: ["red", "green", "blue", "warm"] },
+    { id: "bw",   name: "Blue and white",           seq: ["blue", "cool"] },
+    { id: "icy",  name: "Icy (blue, white, white)", seq: ["blue", "cool", "cool"] }
+  ];
+  function rgbCss(k) { return "rgb(" + COLORS[k].rgb.join(",") + ")"; }
+
+  var S = { base: null, W: 0, H: 0, strands: [], draft: [], scaleDraft: [], cat: "c9", scaling: false, seq: ["warm"], build: false, pxPerFt: null, zoom: 1 };
+  function catById(id) { return CATS.filter(function (c) { return c.id === id; })[0]; }
+  function tool() { return S.scaling ? "scale" : catById(S.cat).kind; }
+
+  function dist(a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1]); }
+  function lerp(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]; }
+  function polyLen(p) { var L = 0; for (var i = 1; i < p.length; i++) L += dist(p[i - 1], p[i]); return L; }
+  function samplePoly(pts, spacing) {
+    var out = [], carry = 0;
+    for (var i = 1; i < pts.length; i++) {
+      var a = pts[i - 1], b = pts[i], L = dist(a, b);
+      if (!L) continue;
+      var d = carry;
+      while (d <= L) { out.push(lerp(a, b, d / L)); d += spacing; }
+      carry = d - L;
+    }
+    return out;
+  }
+  function bulbR()   { return Math.max(2, S.W * parseFloat($("sizeR").value) / 1000); }
+  function spacePx() { return Math.max(6, S.W * parseFloat($("spaceR").value) / 1000); }
+  function wrapPx()  { return S.W * parseFloat($("wrapR").value) / 1000; }
+  function readouts() {
+    $("sizeV").textContent = $("sizeR").value;
+    $("wrapV").textContent = (parseFloat($("wrapR").value) / 10).toFixed(1) + "% of photo";
+    $("duskV").textContent = $("duskR").value + "%";
+    if (S.pxPerFt && S.W) $("spaceV").textContent = Math.round(spacePx() / S.pxPerFt * 12) + " in";
+    else $("spaceV").textContent = "set scale for inches";
+  }
+  function dot(x, y, rgb, r) {
+    var hg = ctx.createRadialGradient(x, y, 0, x, y, r * 5);
+    hg.addColorStop(0, "rgba(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ",0.5)");
+    hg.addColorStop(1, "rgba(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ",0)");
+    ctx.fillStyle = hg; ctx.beginPath(); ctx.arc(x, y, r * 5, 0, 6.2832); ctx.fill();
+    var cr = r * 1.25, c = ctx.createRadialGradient(x, y, 0, x, y, cr);
+    var mix = function (v) { return Math.min(255, Math.round(v * 0.35 + 255 * 0.65)); };
+    c.addColorStop(0, "rgb(" + mix(rgb[0]) + "," + mix(rgb[1]) + "," + mix(rgb[2]) + ")");
+    c.addColorStop(0.7, "rgb(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ")");
+    c.addColorStop(1, "rgba(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ",0)");
+    ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, cr, 0, 6.2832); ctx.fill();
+  }
+  function colorAt(seq, i) { return COLORS[seq[i % seq.length]].rgb; }
+  function wrapSegments(st) {
+    var A = st.pts[0], B = st.pts[1];
+    var dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy) || 1;
+    var px = -dy / L, py = dx / L, hw = st.w / 2;
+    var pitch = Math.max(6, st.r * 3.6), n = Math.max(1, Math.round(L / pitch)), segs = [];
+    for (var i = 0; i <= n; i++) {
+      var t = i / n, t2 = Math.min(1, (i + 0.6) / n);
+      var c1 = lerp(A, B, t), c2 = lerp(A, B, t2), flip = i % 2 === 1;
+      var a = flip ? [c1[0] + px * hw, c1[1] + py * hw] : [c1[0] - px * hw, c1[1] - py * hw];
+      var b = flip ? [c2[0] - px * hw, c2[1] - py * hw] : [c2[0] + px * hw, c2[1] + py * hw];
+      segs.push([a, b]);
+    }
+    return segs;
+  }
+  function bushDots(st) {
+    var out = [], n = 46, rx = st.rad, ry = st.rad * 0.8;
+    for (var i = 0; i < n; i++) {
+      var a = i * 2.399963, rr = Math.sqrt((i + 0.5) / n);
+      out.push([st.pts[0][0] + Math.cos(a) * rr * rx, st.pts[0][1] + Math.sin(a) * rr * ry]);
+    }
+    return out;
+  }
+  function strandLenPx(st) { return polyLen(st.pts); }
+  function drawStrand(st) {
+    var k = 0;
+    if (st.kind === "line") samplePoly(st.pts, st.sp).forEach(function (p) { dot(p[0], p[1], colorAt(st.seq, k++), st.r); });
+    else if (st.kind === "wrap") {
+      var sp = Math.max(5, st.r * 2.6);
+      wrapSegments(st).forEach(function (s) { samplePoly([s[0], s[1]], sp).forEach(function (p) { dot(p[0], p[1], colorAt(st.seq, k++), st.r * 0.55); }); });
+    } else bushDots(st).forEach(function (p) { dot(p[0], p[1], colorAt(st.seq, k++), st.r * 0.6); });
+  }
+  function marker(p, col, n) {
+    var r = Math.max(9, S.W / 110);
+    ctx.lineWidth = Math.max(2, r / 4); ctx.strokeStyle = "rgba(0,0,0,.75)"; ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, 6.2832); ctx.fill(); ctx.stroke();
+    if (n) { ctx.fillStyle = "#000"; ctx.font = "600 " + Math.round(r * 1.1) + "px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(String(n), p[0], p[1] + 1); }
+  }
+  function guideLine(pts, col) {
+    if (pts.length < 2) return;
+    ctx.save(); ctx.setLineDash([S.W / 90, S.W / 120]); ctx.lineWidth = Math.max(2, S.W / 500); ctx.strokeStyle = col;
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.stroke(); ctx.restore();
+  }
+  function render(guides) {
+    if (!S.base) return;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.clearRect(0, 0, S.W, S.H);
+    ctx.drawImage(S.base, 0, 0, S.W, S.H);
+    var d = parseFloat($("duskR").value) / 100;
+    if (d > 0) {
+      var k = 1 - 0.55 * d;
+      ctx.globalCompositeOperation = "multiply";
+      ctx.fillStyle = "rgb(" + Math.round(255 * k * 0.92) + "," + Math.round(255 * k * 0.97) + "," + Math.min(255, Math.round(255 * k * 1.08)) + ")";
+      ctx.fillRect(0, 0, S.W, S.H);
+    }
+    ctx.globalCompositeOperation = "lighter";
+    S.strands.forEach(drawStrand);
+    ctx.globalCompositeOperation = "source-over";
+    if (guides) {
+      var t = tool();
+      if (t === "line" && S.draft.length) { guideLine(S.draft, "#ffe28a"); S.draft.forEach(function (p, i) { marker(p, "#ffe28a", i + 1); }); }
+      if (t === "wrap" && S.draft.length === 1) marker(S.draft[0], "#9be7b5", 1);
+      if (t === "scale" && S.scaleDraft.length) { guideLine(S.scaleDraft, "#7fd0ff"); S.scaleDraft.forEach(function (p, i) { marker(p, "#7fd0ff", i + 1); }); }
+    }
+  }
+
+  function measured(c) {
+    var m = 0;
+    S.strands.forEach(function (st) {
+      if (st.cat !== c.id) return;
+      if (c.kind === "line") { if (S.pxPerFt) m += strandLenPx(st) / S.pxPerFt; } else m += 1;
+    });
+    return c.unit === "ft" ? Math.round(m) : m;
+  }
+  function qtysNow() {
+    var q = {};
+    CATS.forEach(function (c) { q[c.id] = Math.max(0, measured(c) + (cfg.adjust[c.id] || 0)); });
+    return q;
+  }
+
+  var lineRefs = {};
+  function buildLines() {
+    var host = $("lines"); host.textContent = ""; lineRefs = {};
+    CATS.forEach(function (c) {
+      var art = h("article", { class: "line" });
+      var meas = h("div", { class: "lmeas" });
+      art.appendChild(h("div", { class: "lhead" }, [h("div", { class: "lname", text: c.name }), meas]));
+      function fld(label, input) {
+        var id = "f_" + c.id + "_" + label.replace(/\W/g, "");
+        input.id = id; return h("div", null, [h("label", { for: id, text: label }), input]);
+      }
+      function ni(step, val) { return h("input", { type: "number", inputmode: "decimal", step: step, value: String(val) }); }
+      var adj = ni("1", cfg.adjust[c.id] || 0), rn = ni("0.25", cfg.rates[c.id].n);
+      var grid = h("div", { class: "lgrid" });
+      var uw = c.unit === "ft" ? "ft" : "strand";
+      grid.appendChild(fld("Add or subtract (" + (c.unit === "ft" ? "ft" : "strands") + ")", adj));
+      grid.appendChild(fld("New $ per " + uw, rn));
+      var rr = null, roofNote = null;
+      if (c.roof) { roofNote = h("div", { class: "roofre" }); grid.appendChild(roofNote); }
+      else { rr = ni("0.25", cfg.rates[c.id].r); grid.appendChild(fld("Reinstall $ per " + uw, rr)); }
+      var box = h("div", { class: "lcalc" });
+      function cell(cls, label) { var st = h("strong"); box.appendChild(h("div", { class: cls || null }, [h("span", { text: label }), st])); return st; }
+      var oQty = cell("", "Quantity"), oNew = cell("p", "New install"), oRe = cell("", "Reinstall");
+      art.appendChild(grid); art.appendChild(box); $("lines").appendChild(art);
+      lineRefs[c.id] = { art: art, meas: meas, oQty: oQty, oNew: oNew, oRe: oRe, roofNote: roofNote, adj: adj, rn: rn, rr: rr };
+      adj.addEventListener("input", function () { cfg.adjust[c.id] = num(adj.value); update(); });
+      rn.addEventListener("input", function () { cfg.rates[c.id].n = num(rn.value); saveCfg(); update(); });
+      if (rr) rr.addEventListener("input", function () { cfg.rates[c.id].r = num(rr.value); saveCfg(); update(); });
+    });
+  }
+  function qtyLabel(c, q) { return c.unit === "ft" ? q + " ft" : q + (q === 1 ? " strand" : " strands"); }
+  function itemNoun(c, q) { return c.unit === "ft" ? "about " + q + " ft" : q + " " + (q === 1 ? c.one : c.many); }
+  function firstName() { return firstWord(cfg.customer); }
+  var INCL = "Everything is included: commercial-grade lights, all clips, timers, and labor, plus takedown after the season. The lights are yours to keep, and they carry a lifetime warranty when we do the install.";
+
+  var quoteCust = null; // selected customer id in the Quote tab
+  function quotePerson() {
+    var c = quoteCust ? custById(quoteCust) : null; if (!c) return null;
+    var fn = firstName().toLowerCase();
+    var p = c.people.filter(function (x) { return phoneE164(x.phone) && fn && firstWord(x.name).toLowerCase() === fn; })[0] ||
+            c.people.filter(function (x) { return phoneE164(x.phone); })[0];
+    return p || null;
+  }
+
+  function update() {
+    var qs = qtysNow(), Q = calcQuote(cfg, qs);
+    Q.rows.forEach(function (r) {
+      var ref = lineRefs[r.c.id]; if (!ref) return;
+      var m = measured(r.c);
+      ref.meas.textContent = r.c.kind === "line" && !S.pxPerFt ? "Measured: set scale first" : "Measured: " + qtyLabel(r.c, m);
+      ref.oQty.textContent = qtyLabel(r.c, r.q);
+      ref.oNew.textContent = money(r.nw); ref.oRe.textContent = money(r.re);
+      ref.art.classList.toggle("off", r.q === 0);
+      if (ref.roofNote) ref.roofNote.textContent = "Reinstall " + money(r.rr) + " per ft, set in Your rates";
+    });
+    $("bigNew").textContent = money(Q.newTotal); $("bigRe").textContent = money(Q.reTotal);
+    $("reLabel").textContent = cfg.cust ? "Reinstall next year, customer's lights" : "Reinstall next year, my lights";
+    $("minNote").textContent = Q.any && Q.raw < cfg.minNew ? "Brought up to your minimum new job." : "";
+    $("baseNote").textContent = "Reinstall includes the " + money(cfg.baseRe) + " base charge.";
+
+    var body = $("sqBody"); body.textContent = "";
+    Q.rows.forEach(function (r) {
+      if (r.q <= 0) return;
+      var tr = h("tr");
+      [r.c.name, qtyLabel(r.c, r.q), money(r.rate), money(r.nw)].forEach(function (t, i) { tr.appendChild(h("td", { class: i > 0 ? "n" : null, text: t })); });
+      body.appendChild(tr);
+    });
+    var foot = $("sqFoot"); foot.textContent = "";
+    if (Q.any) {
+      var tr = h("tr"); ["Total", "", "", money(Q.newTotal)].forEach(function (t, i) { tr.appendChild(h("td", { class: i > 0 ? "n" : null, text: t })); }); foot.appendChild(tr);
+    } else body.appendChild(h("tr", null, [h("td", { colspan: "4", text: "Draw or add something to see line items." })]));
+
+    var who = firstName(), lines = Q.rows.filter(function (r) { return r.q > 0; });
+    var hasMini = lines.some(function (r) { return r.c.unit === "strand"; });
+    var tail = "Colors and bulb pattern are completely up to you." + (hasMini ? " For the pillars, trees, and bushes, I'd suggest a pattern that works with solid-color mini sets, since those can't be changed the way bulbs can." : "");
+    var est = ["Hi" + (who ? " " + who : "") + ", thanks for having us out. Here's the plan for your Christmas lights:", ""];
+    lines.forEach(function (r) { est.push("• " + r.c.name + ": " + itemNoun(r.c, r.q)); });
+    if (!lines.length) est.push("(Nothing added yet.)");
+    est.push("", tail, "", INCL);
+    $("estMsg").value = est.join("\n");
+    var t = ["Hi" + (who ? " " + who : "") + ", here's your Christmas light plan. I attached a mockup so you can see how it would look.", ""];
+    lines.forEach(function (r) { t.push(r.c.name + " (" + itemNoun(r.c, r.q) + "): " + money(r.nw)); });
+    if (!lines.length) t.push("(Nothing added yet.)");
+    t.push("", "Total: " + money(Q.newTotal), "Each piece is priced separately, so we can start with some and add the rest later.", "", tail, "", INCL, "", "Next year's reinstall is " + money(Q.reTotal) + ", since the lights are yours.");
+    $("txtMsg").value = t.join("\n");
+
+    var qp = quotePerson(), sms = $("q_sms");
+    if (qp) { sms.href = smsHref(qp.phone, $("txtMsg").value); sms.removeAttribute("aria-disabled"); sms.textContent = "Text " + (firstWord(qp.name) || "customer"); }
+    else { sms.href = "#"; sms.setAttribute("aria-disabled", "true"); sms.textContent = "Open in Messages"; }
+    $("q_save").disabled = !(quoteCust && Q.any);
+  }
+
+  function fillQuoteSelect() {
+    var sel = $("q_sel"), cur = quoteCust || ""; sel.textContent = "";
+    sel.appendChild(h("option", { value: "", text: "Not on the list" }));
+    DB.customers.slice().sort(function (a, b) { return sortKey(a) < sortKey(b) ? -1 : 1; }).forEach(function (c) { sel.appendChild(h("option", { value: c.id, text: displayName(c) })); });
+    sel.value = cur; if (sel.value !== cur) { sel.value = ""; quoteCust = null; }
+    renderQuoteHist();
+  }
+  function selectQuoteCustomer(id) {
+    quoteCust = id || null;
+    var c = quoteCust ? custById(quoteCust) : null;
+    if (c) {
+      var p = c.people.filter(function (x) { return phoneE164(x.phone); })[0] || c.people[0];
+      cfg.customer = p ? p.name : ""; if (c.address) cfg.address = c.address;
+      $("cust").value = cfg.customer; $("addr").value = cfg.address; setLinks(); saveCfg();
+    }
+    renderQuoteHist(); update();
+  }
+  $("q_sel").addEventListener("change", function () { selectQuoteCustomer(this.value); });
+  function renderQuoteHist() {
+    var c = quoteCust ? custById(quoteCust) : null;
+    $("q_histCard").hidden = !c;
+    if (!c) return;
+    $("q_next").textContent = c.next ? "Your note for next time: " + c.next : "No note for next time yet. Add one on the customer's page.";
+    renderHistory($("q_hist"), c, renderQuoteHist);
+  }
+  $("q_save").addEventListener("click", function () {
+    var c = quoteCust ? custById(quoteCust) : null; if (!c) return;
+    var Q = calcQuote(cfg, qtysNow());
+    c.history.push({ id: uid(), season: SEASON, date: today(), newTotal: Q.newTotal, reTotal: Q.reTotal, cust: cfg.cust,
+      lines: Q.rows.filter(function (r) { return r.q > 0; }).map(function (r) { return { n: r.c.name, q: r.q, u: r.c.unit }; }), note: "" });
+    c.history.sort(function (a, b) { return a.season - b.season; });
+    saveDB(); renderQuoteHist(); $("saveNote").textContent = "Saved to " + displayName(c) + ".";
+  });
+
+  // settings inputs
+  function syncRateInputs() {
+    ["baseRe", "reMine", "reCust", "minNew"].forEach(function (id) { $(id).value = cfg[id]; });
+    $("cust").value = cfg.customer; $("addr").value = cfg.address; setLinks();
+    setCust(cfg.cust ? "cust" : "mine");
+  }
+  ["baseRe", "reMine", "reCust", "minNew"].forEach(function (id) {
+    $(id).addEventListener("input", function () { cfg[id] = num(this.value); saveCfg(); update(); });
+  });
+  $("cust").addEventListener("input", function () { cfg.customer = this.value; saveCfg(); update(); });
+  function setLinks() {
+    var a = (cfg.address || "").trim();
+    $("mapLink").href = a ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(a) : "https://www.google.com/maps";
+    $("earthLink").href = a ? "https://earth.google.com/web/search/" + encodeURIComponent(a) : "https://earth.google.com/web/";
+  }
+  $("addr").addEventListener("input", function () { cfg.address = this.value; saveCfg(); setLinks(); });
+  function setCust(v) {
+    cfg.cust = v === "cust"; saveCfg();
+    document.querySelectorAll("#custSeg button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.v === v)); });
+    update();
+  }
+  document.querySelectorAll("#custSeg button").forEach(function (b) { b.addEventListener("click", function () { setCust(b.dataset.v); }); });
+  var resetArmed = false, resetTimer = null;
+  $("resetRates").addEventListener("click", function () {
+    var btn = $("resetRates");
+    if (!resetArmed) { resetArmed = true; btn.textContent = "Tap again to reset"; clearTimeout(resetTimer); resetTimer = setTimeout(function () { resetArmed = false; btn.textContent = "Reset all rates"; }, 4000); return; }
+    resetArmed = false; btn.textContent = "Reset all rates";
+    var d = defaultCfg();
+    cfg.baseRe = d.baseRe; cfg.reMine = d.reMine; cfg.reCust = d.reCust; cfg.minNew = d.minNew; cfg.rates = d.rates;
+    saveCfg(); buildLines(); syncRateInputs(); update();
+    $("resetNote").textContent = "Rates are back to the starting values.";
+  });
+
+  // category chips
+  function renderCats() {
+    var host = $("cats"); host.textContent = "";
+    CATS.forEach(function (c) {
+      var m = measured(c);
+      var sub = c.kind === "line" && !S.pxPerFt ? "tap to draw" : (m > 0 ? qtyLabel(c, m) : "none yet");
+      host.appendChild(h("button", { type: "button", class: "cat", "aria-pressed": String(!S.scaling && S.cat === c.id), onclick: function () { commitDraft(); S.scaling = false; S.scaleDraft = []; S.cat = c.id; refreshUI(); } },
+        [h("div", { text: c.name }), h("span", { text: sub })]));
+    });
+    host.appendChild(h("button", { type: "button", class: "cat scale", "aria-pressed": String(S.scaling), onclick: function () { commitDraft(); S.scaling = true; S.scaleDraft = []; refreshUI(); } },
+      [h("div", { text: "Set scale" }), h("span", { text: S.pxPerFt ? "scale is set" : "needed for feet" })]));
+  }
+  var HINTS = {
+    line: "Tap along the line to place points. Tap Finish line when the strand is done.",
+    wrap: "Tap the top of the pillar or trunk, then tap the bottom. Wraps use the first color of your pattern. Each wrap counts as one strand.",
+    bush: "Tap the middle of each bush. Change Wrap and bush size under Colors, pattern and look. Each bush counts as one strand.",
+    scale: "Tap both ends of something you know the length of, then enter its length in feet."
+  };
+  function curSeq() { return S.seq.length ? S.seq.slice() : ["warm"]; }
+  function commitDraft() {
+    if (tool() === "line" && S.draft.length >= 2) S.strands.push({ kind: "line", cat: S.cat, pts: S.draft.slice(), seq: curSeq(), r: bulbR(), sp: spacePx() });
+    S.draft = [];
+  }
+  function refreshUI() {
+    var t = tool();
+    $("hint").textContent = S.base ? HINTS[t] : "";
+    document.querySelectorAll(".sw").forEach(function (b) { b.setAttribute("aria-pressed", String(!S.build && S.seq.length === 1 && b.dataset.color === S.seq[0])); });
+    renderSeq();
+    $("finishBtn").disabled = !(t === "line" && S.draft.length >= 2);
+    $("finishBtn").hidden = t !== "line";
+    $("scaleRow").hidden = !(t === "scale" && S.scaleDraft.length === 2);
+    $("saveBtn").disabled = !S.base; $("undoBtn").disabled = !S.base; $("clearBtn").disabled = !S.base;
+    readouts(); renderCats(); update(); render(true);
+  }
+  var sw = $("swatches"), preset = $("preset");
+  PRESETS.forEach(function (p) { preset.appendChild(h("option", { value: p.id, text: p.name })); });
+  Object.keys(COLORS).forEach(function (key) {
+    var b = h("button", { type: "button", class: "sw", "data-color": key, "aria-label": COLORS[key].name, onclick: function () {
+      if (S.build) { if (S.seq.length < 8) S.seq.push(key); } else { commitDraft(); S.seq = [key]; }
+      refreshUI(); } });
+    b.style.background = rgbCss(key); sw.appendChild(b);
+  });
+  preset.addEventListener("change", function () {
+    var p = PRESETS.filter(function (x) { return x.id === preset.value; })[0];
+    if (p && p.seq) { commitDraft(); S.build = false; S.seq = p.seq.slice(); refreshUI(); }
+  });
+  $("buildBtn").addEventListener("click", function () { commitDraft(); S.build = !S.build; if (S.build) S.seq = []; else if (!S.seq.length) S.seq = ["warm"]; refreshUI(); });
+  $("seqBack").addEventListener("click", function () { S.seq.pop(); refreshUI(); });
+  function seqName(seq) { return seq.map(function (k) { return COLORS[k].name.toLowerCase(); }).join(", "); }
+  function renderSeq() {
+    $("buildBtn").setAttribute("aria-pressed", String(S.build));
+    $("buildBtn").textContent = S.build ? "Done building" : "Build my own";
+    $("seqBack").hidden = !S.build; $("seqBack").disabled = !S.seq.length;
+    var prev = $("seqPrev"); prev.textContent = "";
+    var rep = S.seq.length ? S.seq : [], reps = rep.length === 1 ? 1 : (rep.length ? Math.max(1, Math.floor(8 / rep.length)) : 0);
+    for (var r = 0; r < Math.max(reps, 1) && rep.length; r++) rep.forEach(function (k) { var i = h("i"); i.style.background = rgbCss(k); prev.appendChild(i); });
+    $("seqNote").textContent = S.build
+      ? (S.seq.length ? "Pattern repeats in this order along each line. Tap more colors to add, or Done building." : "Tap colors above in the order you want them to repeat.")
+      : (S.seq.length > 1 ? "Pattern repeats in this order: " + seqName(S.seq) + "." : "Tap a color for a solid line, or pick a pattern from the list.");
+    var match = "custom";
+    PRESETS.forEach(function (p) { if (p.seq && !S.build && p.seq.join() === S.seq.join()) match = p.id; });
+    preset.value = match;
+  }
+  cv.addEventListener("click", function (e) {
+    if (!S.base) return;
+    var r = cv.getBoundingClientRect(), p = [(e.clientX - r.left) * S.W / r.width, (e.clientY - r.top) * S.H / r.height], t = tool();
+    if (t === "line") S.draft.push(p);
+    else if (t === "wrap") {
+      S.draft.push(p);
+      if (S.draft.length === 2) { S.strands.push({ kind: "wrap", cat: S.cat, pts: S.draft.slice(), seq: [curSeq()[0]], r: bulbR(), w: wrapPx() }); S.draft = []; }
+    } else if (t === "bush") S.strands.push({ kind: "bush", cat: S.cat, pts: [p], seq: curSeq(), r: bulbR(), rad: wrapPx() * 1.4 });
+    else if (t === "scale") { if (S.scaleDraft.length >= 2) S.scaleDraft = []; S.scaleDraft.push(p); }
+    refreshUI();
+  });
+  $("finishBtn").addEventListener("click", function () { commitDraft(); refreshUI(); });
+  $("undoBtn").addEventListener("click", function () {
+    if (S.scaling && S.scaleDraft.length) S.scaleDraft.pop(); else if (S.draft.length) S.draft.pop(); else S.strands.pop();
+    refreshUI();
+  });
+  $("clearBtn").addEventListener("click", function () { S.strands = []; S.draft = []; S.scaleDraft = []; refreshUI(); });
+  $("preset16").addEventListener("click", function () { $("scaleFt").value = "16"; });
+  $("preset9").addEventListener("click", function () { $("scaleFt").value = "9"; });
+  $("scaleApply").addEventListener("click", function () {
+    var ft = parseFloat($("scaleFt").value);
+    if (S.scaleDraft.length === 2 && ft > 0) { S.pxPerFt = dist(S.scaleDraft[0], S.scaleDraft[1]) / ft; S.scaleDraft = []; $("scaleFt").value = ""; S.scaling = false; refreshUI(); }
+  });
+  ["sizeR", "spaceR", "wrapR", "duskR"].forEach(function (id) { $(id).addEventListener("input", function () { readouts(); if (id === "duskR") render(true); }); });
+  function applyZoom() { if (!S.base) return; var w = stage.clientWidth; if (!w) return; cv.style.width = Math.round(w * S.zoom) + "px"; cv.style.height = "auto"; }
+  $("zoomIn").addEventListener("click", function () { S.zoom = Math.min(4, S.zoom + 0.5); applyZoom(); });
+  $("zoomOut").addEventListener("click", function () { S.zoom = Math.max(1, S.zoom - 0.5); applyZoom(); });
+  window.addEventListener("resize", applyZoom);
+
+  function loadFile(file) {
+    if (!file) return;
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function () {
+      var max = 2000, sc = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      S.W = Math.round(img.naturalWidth * sc); S.H = Math.round(img.naturalHeight * sc);
+      var off = document.createElement("canvas"); off.width = S.W; off.height = S.H;
+      off.getContext("2d").drawImage(img, 0, 0, S.W, S.H);
+      S.base = off; cv.width = S.W; cv.height = S.H;
+      S.strands = []; S.draft = []; S.scaleDraft = []; S.pxPerFt = null; S.zoom = 1; S.scaling = false;
+      $("empty").classList.add("hidden"); URL.revokeObjectURL(url); applyZoom(); refreshUI();
+    };
+    img.onerror = function () { $("hint").textContent = "That file couldn't be opened as a photo. Try another one."; };
+    img.src = url;
+  }
+  $("camBtn").addEventListener("click", function () { $("camIn").click(); });
+  $("libBtn").addEventListener("click", function () { $("libIn").click(); });
+  $("newPhoto").addEventListener("click", function () { $("libIn").click(); });
+  $("camIn").addEventListener("change", function () { loadFile(this.files[0]); this.value = ""; });
+  $("libIn").addEventListener("change", function () { loadFile(this.files[0]); this.value = ""; });
+
+  $("saveBtn").addEventListener("click", function () {
+    if (!S.base) return;
+    commitDraft(); render(false);
+    cv.toBlob(function (blob) {
+      render(true);
+      if (!blob) { $("saveNote").textContent = "Couldn't build the image. Try a smaller photo."; return; }
+      var nm = (cfg.customer || "light").trim().replace(/[^\w\- ]+/g, "").replace(/\s+/g, "-").toLowerCase() || "light";
+      function dialog() {
+        var r = new FileReader();
+        r.onload = function () { $("dlgImg").src = r.result; var d = $("dlg"); if (d.showModal) d.showModal(); else d.setAttribute("open", ""); };
+        r.readAsDataURL(blob);
+      }
+      shareOrDownload(blob, nm + "-mockup.jpg", function (how) {
+        $("saveNote").textContent = how === "cancelled" ? "Save cancelled." : (how === "shared" ? "Choose Save Image to put it in your photos, then attach it to your text." : "Saved to your downloads.");
+      }, dialog);
+    }, "image/jpeg", 0.92);
+  });
+  $("dlgClose").addEventListener("click", function () { var d = $("dlg"); if (d.close) d.close(); else d.removeAttribute("open"); });
+  $("copyEst").addEventListener("click", function () { copyText($("estMsg").value, $("copyNote")); });
+  $("copyTxt").addEventListener("click", function () { copyText($("txtMsg").value, $("copyNote")); });
+
+  // ---------- start ----------
+  buildLines();
+  syncRateInputs();
+  refreshUI();
+  showTab("customers");
+})();
+</script>
+</body>
+</html>
