@@ -131,6 +131,10 @@
 
   .stage { position: relative; background: var(--stage); border-radius: 10px; overflow: auto; max-height: 62vh; min-height: 220px; -webkit-overflow-scrolling: touch; }
   canvas { display: block; touch-action: pan-x pan-y; }
+  canvas.editing { touch-action: none; }
+  .editbar { background: var(--panel); border: 2px solid var(--pine); border-radius: 10px; padding: 12px 14px; margin: 0 0 14px; }
+  .ebhead { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .ebhead strong { font: 600 20px/1.1 "Barlow Condensed", "Arial Narrow", sans-serif; }
   .empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 20px; text-align: center; color: #cfe0d6; }
   .empty p { margin: 0; max-width: 30ch; }
   .hintline { margin: 10px 2px; color: var(--muted); font-size: 15px; min-height: 2.6em; }
@@ -279,6 +283,23 @@
     <input id="libIn" type="file" accept="image/*" class="hidden">
     <p class="hintline" id="hint" aria-live="polite"></p>
 
+    <div class="editbar" id="editBar" hidden>
+      <div class="ebhead">
+        <strong id="ebName"></strong>
+        <button class="btn primary" id="ebDone" type="button">Done editing</button>
+      </div>
+      <p class="small" id="ebHint" style="margin:6px 0 0"></p>
+      <div class="sliders">
+        <div id="ebSizeW"><label for="ebSize">Size <b id="ebSizeV"></b></label><input id="ebSize" type="range" min="30" max="300" step="5" value="100"></div>
+        <div id="ebTurnW"><label for="ebTurn">Turn (side of house) <b id="ebTurnV"></b></label><input id="ebTurn" type="range" min="-80" max="80" step="1" value="0"></div>
+        <div id="ebTiltW"><label for="ebTilt">Tilt <b id="ebTiltV"></b></label><input id="ebTilt" type="range" min="-70" max="70" step="1" value="0"></div>
+        <div id="ebSpinW"><label for="ebSpin">Spin (moves the bow) <b id="ebSpinV"></b></label><input id="ebSpin" type="range" min="-180" max="180" step="1" value="0"></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="ebRemove" type="button">Remove this section</button>
+      </div>
+    </div>
+
     <div class="panel">
       <h2>What are you drawing?</h2>
       <p class="hint">Pick one, then tap the photo. Each pick prices at its own rate below.</p>
@@ -352,6 +373,7 @@
           <div><label for="reMine">Reinstall, my lights ($/ft)</label><input id="reMine" type="number" inputmode="decimal" step="0.25" min="0"></div>
           <div><label for="reCust">Reinstall, customer's ($/ft)</label><input id="reCust" type="number" inputmode="decimal" step="0.25" min="0"></div>
           <div><label for="minNew">Minimum new job ($)</label><input id="minNew" type="number" inputmode="decimal" step="25" min="0"></div>
+          <div><label for="pathSp">Starburst spacing (ft)</label><input id="pathSp" type="number" inputmode="decimal" step="1" min="2"></div>
         </div>
         <div class="row" style="margin-top:12px"><button class="btn" id="resetRates" type="button">Reset all rates</button></div>
         <p class="small" id="resetNote" aria-live="polite"></p>
@@ -501,10 +523,11 @@
     { id: "pil",  name: "Pillars and columns",     kind: "wrap",  unit: "strand", one: "pillar", many: "pillars", reR: 17.5, newR: 45 },
     { id: "tre",  name: "Trees",                   kind: "wrap",  unit: "strand", one: "tree",   many: "trees",   reR: 17.5, newR: 45 },
     { id: "bus",  name: "Bushes",                  kind: "bush",  unit: "strand", one: "bush",   many: "bushes",  reR: 17.5, newR: 45 },
-    { id: "wre",  name: "Lit wreaths",             kind: "wreath", unit: "each",  one: "wreath", many: "wreaths", reR: 135, newR: 325 }
+    { id: "wre",  name: "Lit wreaths",             kind: "wreath", unit: "each",  one: "wreath", many: "wreaths", reR: 135, newR: 325 },
+    { id: "sbp",  name: "Starburst pathway lights", kind: "path", unit: "each",  one: "starburst light", many: "starburst lights", packs: 3, reR: 12.5, newR: 37.5 }
   ];
   function defaultCfg() {
-    var c = { customer: "", address: "", baseRe: 100, reMine: 1.5, reCust: 2, minNew: 0, cust: false, rates: {}, adjust: {} };
+    var c = { customer: "", address: "", baseRe: 100, reMine: 1.5, reCust: 2, minNew: 0, pathSp: 10, cust: false, rates: {}, adjust: {} };
     CATS.forEach(function (k) {
       c.rates[k.id] = { n: k.newR, r: k.roof ? null : k.reR };
       c.adjust[k.id] = 0;
@@ -1161,7 +1184,7 @@
     var d = defaultCfg(), s = DB.cfg;
     if (s) {
       ["customer", "address"].forEach(function (k) { if (typeof s[k] === "string") d[k] = s[k]; });
-      ["baseRe", "reMine", "reCust", "minNew"].forEach(function (k) { if (isFinite(s[k])) d[k] = Number(s[k]); });
+      ["baseRe", "reMine", "reCust", "minNew", "pathSp"].forEach(function (k) { if (isFinite(s[k]) && s[k] !== null) d[k] = Number(s[k]); });
       if (typeof s.cust === "boolean") d.cust = s.cust;
       if (s.rates) CATS.forEach(function (c) {
         var r = s.rates[c.id];
@@ -1173,7 +1196,7 @@
   }
   var cfg = loadCfg();
   function saveCfg() {
-    DB.cfg = { customer: cfg.customer, address: cfg.address, baseRe: cfg.baseRe, reMine: cfg.reMine, reCust: cfg.reCust, minNew: cfg.minNew, cust: cfg.cust, rates: cfg.rates };
+    DB.cfg = { customer: cfg.customer, address: cfg.address, baseRe: cfg.baseRe, reMine: cfg.reMine, reCust: cfg.reCust, minNew: cfg.minNew, pathSp: cfg.pathSp, cust: cfg.cust, rates: cfg.rates };
     saveDB();
   }
   var money = moneyS;
@@ -1228,11 +1251,12 @@
     if (S.pxPerFt && S.W) $("spaceV").textContent = Math.round(spacePx() / S.pxPerFt * 12) + " in";
     else $("spaceV").textContent = "set scale for inches";
   }
-  function dot(x, y, rgb, r) {
-    var hg = ctx.createRadialGradient(x, y, 0, x, y, r * 5);
+  function dot(x, y, rgb, r, hm) {
+    hm = hm || 5;
+    var hg = ctx.createRadialGradient(x, y, 0, x, y, r * hm);
     hg.addColorStop(0, "rgba(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ",0.5)");
     hg.addColorStop(1, "rgba(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ",0)");
-    ctx.fillStyle = hg; ctx.beginPath(); ctx.arc(x, y, r * 5, 0, 6.2832); ctx.fill();
+    ctx.fillStyle = hg; ctx.beginPath(); ctx.arc(x, y, r * hm, 0, 6.2832); ctx.fill();
     var cr = r * 1.25, c = ctx.createRadialGradient(x, y, 0, x, y, cr);
     var mix = function (v) { return Math.min(255, Math.round(v * 0.35 + 255 * 0.65)); };
     c.addColorStop(0, "rgb(" + mix(rgb[0]) + "," + mix(rgb[1]) + "," + mix(rgb[2]) + ")");
@@ -1263,32 +1287,103 @@
     }
     return out;
   }
+  // Wreath points live on a flat ring; turn, tilt and spin rotate that ring in 3D, then it is drawn flat on the photo.
+  function projW(st, x, y) {
+    var D = Math.PI / 180, rz = (st.rz || 0) * D, rx = (st.rx || 0) * D, ry = (st.ry || 0) * D;
+    var x1 = x * Math.cos(rz) - y * Math.sin(rz), y1 = x * Math.sin(rz) + y * Math.cos(rz);
+    var y2 = y1 * Math.cos(rx), z2 = y1 * Math.sin(rx);
+    var x3 = x1 * Math.cos(ry) + z2 * Math.sin(ry), z3 = -x1 * Math.sin(ry) + z2 * Math.cos(ry);
+    return [st.pts[0][0] + x3, st.pts[0][1] + y2, z3];
+  }
   function wreathDots(st) {
-    var out = [], c = st.pts[0], n = 30;
+    var out = [], n = 30;
     for (var i = 0; i < n; i++) {
       var a = i / n * 6.2832, rr = st.rad * (i % 2 ? 0.86 : 1.06);
-      out.push([c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr]);
+      out.push(projW(st, Math.cos(a) * rr, Math.sin(a) * rr));
     }
     return out;
   }
+  function ringPath(st, r, n) {
+    for (var i = 0; i <= n; i++) {
+      var a = i / n * 6.2832, q = projW(st, Math.cos(a) * r, Math.sin(a) * r);
+      if (i === 0) ctx.moveTo(q[0], q[1]); else ctx.lineTo(q[0], q[1]);
+    }
+    ctx.closePath();
+  }
   function drawWreathBase(st) {
-    var c = st.pts[0], R = st.rad;
+    var R = st.rad;
     ctx.save(); ctx.lineCap = "round";
-    ctx.strokeStyle = "rgb(22,58,34)"; ctx.lineWidth = R * 0.5;
-    ctx.beginPath(); ctx.arc(c[0], c[1], R * 0.96, 0, 6.2832); ctx.stroke();
+    ctx.fillStyle = "rgb(22,58,34)";
+    ctx.beginPath(); ringPath(st, R * 1.21, 48); ringPath(st, R * 0.71, 48); ctx.fill("evenodd");
     ctx.strokeStyle = "rgb(38,88,50)"; ctx.lineWidth = Math.max(1.5, R * 0.06);
     for (var i = 0; i < 36; i++) {
       var a = i / 36 * 6.2832, r1 = R * (i % 2 ? 0.76 : 0.82), r2 = R * (i % 2 ? 1.12 : 1.18);
-      ctx.beginPath(); ctx.moveTo(c[0] + Math.cos(a) * r1, c[1] + Math.sin(a) * r1);
-      ctx.lineTo(c[0] + Math.cos(a + 0.12) * r2, c[1] + Math.sin(a + 0.12) * r2); ctx.stroke();
+      var p1 = projW(st, Math.cos(a) * r1, Math.sin(a) * r1), p2 = projW(st, Math.cos(a + 0.12) * r2, Math.sin(a + 0.12) * r2);
+      ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
     }
-    var bx = c[0], by = c[1] + R, b = R * 0.28;
+    var b = R * 0.28, by = R;
     ctx.fillStyle = "rgb(150,20,24)";
     [[-1.3, -0.7, -1.3, 0.7], [1.3, -0.7, 1.3, 0.7], [-0.5, 1.6, -0.1, 1.5], [0.5, 1.6, 0.1, 1.5]].forEach(function (t) {
-      ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + b * t[0], by + b * t[1]); ctx.lineTo(bx + b * t[2], by + b * t[3]); ctx.closePath(); ctx.fill();
+      var a0 = projW(st, 0, by), a1 = projW(st, b * t[0], by + b * t[1]), a2 = projW(st, b * t[2], by + b * t[3]);
+      ctx.beginPath(); ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a1[0], a1[1]); ctx.lineTo(a2[0], a2[1]); ctx.closePath(); ctx.fill();
     });
-    ctx.beginPath(); ctx.arc(bx, by, b * 0.35, 0, 6.2832); ctx.fill();
+    ctx.beginPath();
+    for (var j = 0; j <= 16; j++) { var k = projW(st, Math.cos(j / 16 * 6.2832) * b * 0.35, by + Math.sin(j / 16 * 6.2832) * b * 0.35); if (j) ctx.lineTo(k[0], k[1]); else ctx.moveTo(k[0], k[1]); }
+    ctx.fill();
     ctx.restore();
+  }
+
+  // Starburst pathway lights: evenly spaced along the drawn line, always a multiple of 3 per line.
+  function pointsAlong(pts, n) {
+    var L = polyLen(pts), out = [];
+    if (n === 1 || !L) return [pts[0].slice()];
+    for (var i = 0; i < n; i++) {
+      var want = L * i / (n - 1), acc = 0;
+      for (var j = 1; j < pts.length; j++) {
+        var seg = dist(pts[j - 1], pts[j]);
+        if (acc + seg >= want - 1e-6 || j === pts.length - 1) { out.push(lerp(pts[j - 1], pts[j], seg ? Math.min(1, (want - acc) / seg) : 0)); break; }
+        acc += seg;
+      }
+    }
+    return out;
+  }
+  function pathPoints(st) {
+    var L = polyLen(st.pts);
+    var sp = S.pxPerFt ? Math.max(1, cfg.pathSp || 10) * S.pxPerFt : S.W * 0.12;
+    var n = Math.max(1, Math.round(L / sp) + 1);
+    n = Math.ceil(n / 3) * 3;
+    return pointsAlong(st.pts, n);
+  }
+  var BURST = (function () {
+    var out = [], n = 22;
+    for (var i = 0; i < n; i++) {
+      var y = 1 - (i + 0.5) / n * 2, r = Math.sqrt(1 - y * y), a = i * 2.399963;
+      out.push([Math.cos(a) * r, y, Math.sin(a) * r]);
+    }
+    return out;
+  })();
+  function pathColor(st, i) {
+    var ok = st.seq.filter(function (k) { return k === "warm" || k === "cool"; });
+    if (!ok.length) ok = ["warm"];
+    return COLORS[ok[i % ok.length]].rgb;
+  }
+  function burstHead(st, g) { return [g[0], g[1] - st.rad * 1.9]; }
+  function drawStakes(st) {
+    ctx.save(); ctx.strokeStyle = "rgba(70,70,70,.9)"; ctx.lineWidth = Math.max(1.5, st.rad * 0.07);
+    pathPoints(st).forEach(function (g) { var c = burstHead(st, g); ctx.beginPath(); ctx.moveTo(g[0], g[1]); ctx.lineTo(c[0], c[1]); ctx.stroke(); });
+    ctx.restore();
+  }
+  function drawBursts(st) {
+    var R = st.rad, br = Math.max(1, R * 0.045);
+    pathPoints(st).forEach(function (g, i) {
+      var c = burstHead(st, g), col = pathColor(st, i);
+      ctx.strokeStyle = "rgba(" + col.join(",") + ",0.22)"; ctx.lineWidth = Math.max(1, R * 0.018);
+      dot(c[0], c[1], col, R * 0.12, 3);
+      BURST.forEach(function (d) {
+        ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.lineTo(c[0] + d[0] * R, c[1] + d[1] * R); ctx.stroke();
+        [0.5, 0.75, 1].forEach(function (t) { dot(c[0] + d[0] * R * t, c[1] + d[1] * R * t, col, br * (1 - d[2] * 0.3), 2.2); });
+      });
+    });
   }
   function strandLenPx(st) { return polyLen(st.pts); }
   function drawStrand(st) {
@@ -1297,7 +1392,8 @@
     else if (st.kind === "wrap") {
       var sp = Math.max(5, st.r * 2.6);
       wrapSegments(st).forEach(function (s) { samplePoly([s[0], s[1]], sp).forEach(function (p) { dot(p[0], p[1], colorAt(st.seq, k++), st.r * 0.55); }); });
-    } else if (st.kind === "wreath") wreathDots(st).forEach(function (p) { dot(p[0], p[1], colorAt(st.seq, k++), st.r * 0.6); });
+    } else if (st.kind === "wreath") wreathDots(st).forEach(function (p) { dot(p[0], p[1], colorAt(st.seq, k++), st.r * 0.6 * (1 - 0.25 * p[2] / st.rad)); });
+    else if (st.kind === "path") drawBursts(st);
     else bushDots(st).forEach(function (p) { dot(p[0], p[1], colorAt(st.seq, k++), st.r * 0.6); });
   }
   function marker(p, col, n) {
@@ -1326,21 +1422,23 @@
       ctx.fillStyle = "rgb(" + Math.round(255 * k * 0.92) + "," + Math.round(255 * k * 0.97) + "," + Math.min(255, Math.round(255 * k * 1.08)) + ")";
       ctx.fillRect(0, 0, S.W, S.H);
     }
+    S.strands.forEach(function (st) { if (st.kind === "path") drawStakes(st); });
     ctx.globalCompositeOperation = "lighter";
     S.strands.forEach(drawStrand);
     ctx.globalCompositeOperation = "source-over";
     if (guides && S.sel != null && S.strands[S.sel]) {
       var ss = S.strands[S.sel];
-      if (ss.kind === "line" || ss.kind === "wrap") guideLine(ss.pts, "#ffffff");
+      if (ss.pts.length > 1) guideLine(ss.pts, "#ffffff");
       else {
         var rad = ss.kind === "wreath" ? ss.rad * 1.4 : ss.rad * 1.15;
         ctx.save(); ctx.setLineDash([S.W / 90, S.W / 120]); ctx.lineWidth = Math.max(2, S.W / 500); ctx.strokeStyle = "#ffffff";
         ctx.beginPath(); ctx.arc(ss.pts[0][0], ss.pts[0][1], rad, 0, 6.2832); ctx.stroke(); ctx.restore();
       }
+      drawHandles(ss);
     }
     if (guides) {
       var t = tool();
-      if (t === "line" && S.draft.length) { guideLine(S.draft, "#ffe28a"); S.draft.forEach(function (p, i) { marker(p, "#ffe28a", i + 1); }); }
+      if ((t === "line" || t === "path") && S.draft.length) { guideLine(S.draft, "#ffe28a"); S.draft.forEach(function (p, i) { marker(p, "#ffe28a", i + 1); }); }
       if (t === "wrap" && S.draft.length === 1) marker(S.draft[0], "#9be7b5", 1);
       if (t === "scale" && S.scaleDraft.length) { guideLine(S.scaleDraft, "#7fd0ff"); S.scaleDraft.forEach(function (p, i) { marker(p, "#7fd0ff", i + 1); }); }
     }
@@ -1350,13 +1448,19 @@
     var m = 0;
     S.strands.forEach(function (st) {
       if (st.cat !== c.id) return;
-      if (c.kind === "line") { if (S.pxPerFt) m += strandLenPx(st) / S.pxPerFt; } else m += 1;
+      if (c.kind === "line") { if (S.pxPerFt) m += strandLenPx(st) / S.pxPerFt; }
+      else if (c.kind === "path") m += pathPoints(st).length;
+      else m += 1;
     });
     return c.unit === "ft" ? Math.round(m) : m;
   }
   function qtysNow() {
     var q = {};
-    CATS.forEach(function (c) { q[c.id] = Math.max(0, measured(c) + (cfg.adjust[c.id] || 0)); });
+    CATS.forEach(function (c) {
+      var v = Math.max(0, measured(c) + (cfg.adjust[c.id] || 0));
+      if (c.packs) v = Math.ceil(v / c.packs) * c.packs;
+      q[c.id] = v;
+    });
     return q;
   }
 
@@ -1372,7 +1476,7 @@
         input.id = id; return h("div", null, [h("label", { for: id, text: label }), input]);
       }
       function ni(step, val) { return h("input", { type: "number", inputmode: "decimal", step: step, value: String(val) }); }
-      var adj = ni("1", cfg.adjust[c.id] || 0), rn = ni("0.25", cfg.rates[c.id].n);
+      var adj = ni(c.packs ? String(c.packs) : "1", cfg.adjust[c.id] || 0), rn = ni("0.25", cfg.rates[c.id].n);
       var grid = h("div", { class: "lgrid" });
       var uw = c.unit === "ft" ? "ft" : (c.unit === "each" ? c.one : "strand");
       grid.appendChild(fld("Add or subtract (" + (c.unit === "ft" ? "ft" : (c.unit === "each" ? c.many : "strands")) + ")", adj));
@@ -1438,6 +1542,8 @@
     var est = ["Hi" + (who ? " " + who : "") + ", thanks for having us out. Here's the plan for your Christmas lights:", ""];
     lines.forEach(function (r) { est.push("• " + r.c.name + ": " + itemNoun(r.c, r.q)); });
     if (!lines.length) est.push("(Nothing added yet.)");
+    var hasPath = lines.some(function (r) { return r.c.kind === "path"; });
+    if (hasPath) tail += " The starburst pathway lights come in warm white or cool white.";
     est.push("", tail, "", INCL);
     $("estMsg").value = est.join("\n");
     var t = ["Hi" + (who ? " " + who : "") + ", here's your Christmas light plan. I attached a mockup so you can see how it would look.", ""];
@@ -1488,12 +1594,12 @@
 
   // settings inputs
   function syncRateInputs() {
-    ["baseRe", "reMine", "reCust", "minNew"].forEach(function (id) { $(id).value = cfg[id]; });
+    ["baseRe", "reMine", "reCust", "minNew", "pathSp"].forEach(function (id) { $(id).value = cfg[id]; });
     $("cust").value = cfg.customer; $("addr").value = cfg.address; setLinks();
     setCust(cfg.cust ? "cust" : "mine");
   }
-  ["baseRe", "reMine", "reCust", "minNew"].forEach(function (id) {
-    $(id).addEventListener("input", function () { cfg[id] = num(this.value); saveCfg(); update(); });
+  ["baseRe", "reMine", "reCust", "minNew", "pathSp"].forEach(function (id) {
+    $(id).addEventListener("input", function () { cfg[id] = num(this.value); saveCfg(); update(); if (id === "pathSp") { renderCats(); render(true); } });
   });
   $("cust").addEventListener("input", function () { cfg.customer = this.value; saveCfg(); update(); });
   function setLinks() {
@@ -1514,7 +1620,7 @@
     if (!resetArmed) { resetArmed = true; btn.textContent = "Tap again to reset"; clearTimeout(resetTimer); resetTimer = setTimeout(function () { resetArmed = false; btn.textContent = "Reset all rates"; }, 4000); return; }
     resetArmed = false; btn.textContent = "Reset all rates";
     var d = defaultCfg();
-    cfg.baseRe = d.baseRe; cfg.reMine = d.reMine; cfg.reCust = d.reCust; cfg.minNew = d.minNew; cfg.rates = d.rates;
+    cfg.baseRe = d.baseRe; cfg.reMine = d.reMine; cfg.reCust = d.reCust; cfg.minNew = d.minNew; cfg.pathSp = d.pathSp; cfg.rates = d.rates;
     saveCfg(); buildLines(); syncRateInputs(); update();
     $("resetNote").textContent = "Rates are back to the starting values.";
   });
@@ -1534,25 +1640,28 @@
   var HINTS = {
     line: "Tap along the line to place points. Tap Finish line when the strand is done.",
     wrap: "Tap the top of the pillar or trunk, then tap the bottom. Each wrap counts as one strand.",
-    wreath: "Tap the middle of each wreath. Change its size with Wrap, bush and wreath size under Bulb pattern.",
+    path: "Tap along the edge of the driveway or walk, then tap Finish line. Lights go about every 10 ft (change it in Your rates) and always come in packs of 3. Set scale first so the spacing is real.",
+    wreath: "Tap the middle of each wreath. To put one on the side of the house, select it under Sections and use Turn. Change its size with Wrap, bush and wreath size under Bulb pattern.",
     bush: "Tap the middle of each bush. Change its size with Wrap, bush and wreath size under Bulb pattern. Each bush counts as one strand.",
     scale: "Tap both ends of something you know the length of, then enter its length in feet."
   };
   function curSeq() { return S.seq.length ? S.seq.slice() : ["warm"]; }
   function commitDraft() {
-    if (tool() === "line" && S.draft.length >= 2) S.strands.push({ kind: "line", cat: S.cat, pts: S.draft.slice(), seq: curSeq(), r: bulbR(), sp: spacePx() });
+    var t = tool();
+    if ((t === "line" || t === "path") && S.draft.length >= 2) S.strands.push({ kind: t, cat: S.cat, pts: S.draft.slice(), seq: curSeq(), r: bulbR(), sp: spacePx(), rad: wrapPx() * 0.8 });
     S.draft = [];
   }
   function refreshUI() {
     var t = tool();
-    $("hint").textContent = S.base ? HINTS[t] : "";
+    $("hint").textContent = S.base ? (S.sel != null ? "Editing a section. Tap Done editing to go back to drawing." : HINTS[t]) : "";
     document.querySelectorAll(".sw").forEach(function (b) { b.setAttribute("aria-pressed", String(!S.build && S.seq.length === 1 && b.dataset.color === S.seq[0])); });
     renderSeq();
-    $("finishBtn").disabled = !(t === "line" && S.draft.length >= 2);
-    $("finishBtn").hidden = t !== "line";
+    var lineT = t === "line" || t === "path";
+    $("finishBtn").disabled = !(lineT && S.draft.length >= 2);
+    $("finishBtn").hidden = !lineT;
     $("scaleRow").hidden = !(t === "scale" && S.scaleDraft.length === 2);
     $("saveBtn").disabled = !S.base; $("undoBtn").disabled = !S.base; $("clearBtn").disabled = !S.base;
-    readouts(); renderCats(); renderSecs(); update(); render(true);
+    readouts(); renderCats(); renderSecs(); renderEdit(); update(); render(true);
   }
   var sw = $("swatches"), preset = $("preset");
   PRESETS.forEach(function (p) { preset.appendChild(h("option", { value: p.id, text: p.name })); });
@@ -1583,6 +1692,112 @@
     PRESETS.forEach(function (p) { if (p.seq && !S.build && p.seq.join() === S.seq.join()) match = p.id; });
     preset.value = match;
   }
+  // ---------- editing a selected section ----------
+  function hitR() { var r = cv.getBoundingClientRect(); return 26 * S.W / (r.width || S.W); }
+  function moveHandlePos(st) {
+    if (st.pts.length === 1) return null;
+    var xs = st.pts.map(function (p) { return p[0]; }), ys = st.pts.map(function (p) { return p[1]; });
+    var cx = (Math.min.apply(null, xs) + Math.max.apply(null, xs)) / 2, top = Math.min.apply(null, ys);
+    return [cx, Math.max(hitR(), top - hitR() * 2.2)];
+  }
+  function handlesOf(st) {
+    var hs = st.pts.map(function (p, i) { return { t: "pt", i: i, p: p }; });
+    if (st.kind === "line" || st.kind === "path") {
+      for (var i = 1; i < st.pts.length; i++) hs.push({ t: "mid", i: i, p: lerp(st.pts[i - 1], st.pts[i], 0.5) });
+    }
+    var mv = moveHandlePos(st); if (mv) hs.push({ t: "move", p: mv });
+    return hs;
+  }
+  function drawHandles(st) {
+    var R = hitR() * 0.5;
+    ctx.save(); ctx.setLineDash([]);
+    handlesOf(st).forEach(function (h0) {
+      ctx.lineWidth = Math.max(2, R * 0.25); ctx.strokeStyle = "rgba(0,0,0,.8)";
+      if (h0.t === "move") {
+        ctx.fillStyle = "#ffe28a"; ctx.fillRect(h0.p[0] - R, h0.p[1] - R, R * 2, R * 2); ctx.strokeRect(h0.p[0] - R, h0.p[1] - R, R * 2, R * 2);
+        ctx.beginPath(); ctx.moveTo(h0.p[0] - R * 0.6, h0.p[1]); ctx.lineTo(h0.p[0] + R * 0.6, h0.p[1]);
+        ctx.moveTo(h0.p[0], h0.p[1] - R * 0.6); ctx.lineTo(h0.p[0], h0.p[1] + R * 0.6); ctx.stroke();
+      } else {
+        ctx.fillStyle = h0.t === "mid" ? "rgba(255,255,255,.55)" : "#ffffff";
+        ctx.beginPath(); ctx.arc(h0.p[0], h0.p[1], h0.t === "mid" ? R * 0.6 : R, 0, 6.2832); ctx.fill(); ctx.stroke();
+      }
+    });
+    ctx.restore();
+  }
+  var drag = null, rafPending = false;
+  function canvasPt(e) { var r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * S.W / r.width, (e.clientY - r.top) * S.H / r.height]; }
+  cv.addEventListener("pointerdown", function (e) {
+    if (S.sel == null || !S.strands[S.sel]) return;
+    var st = S.strands[S.sel], p = canvasPt(e), best = null, bd = hitR() * 1.3;
+    handlesOf(st).forEach(function (h0) { var d = dist(p, h0.p) * (h0.t === "mid" ? 1.15 : 1); if (d < bd) { bd = d; best = h0; } });
+    if (!best) return;
+    if (best.t === "mid") { st.pts.splice(best.i, 0, best.p.slice()); best = { t: "pt", i: best.i }; }
+    drag = { h: best, last: p, id: e.pointerId };
+    try { cv.setPointerCapture(e.pointerId); } catch (x) {}
+    e.preventDefault();
+  });
+  cv.addEventListener("pointermove", function (e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    var st = S.strands[S.sel]; if (!st) { drag = null; return; }
+    var p = canvasPt(e);
+    p = [Math.max(0, Math.min(S.W, p[0])), Math.max(0, Math.min(S.H, p[1]))];
+    if (drag.h.t === "pt") st.pts[drag.h.i] = p;
+    else { var dx = p[0] - drag.last[0], dy = p[1] - drag.last[1]; st.pts = st.pts.map(function (q) { return [q[0] + dx, q[1] + dy]; }); }
+    drag.last = p;
+    e.preventDefault();
+    if (!rafPending) { rafPending = true; requestAnimationFrame(function () { rafPending = false; render(true); }); }
+  });
+  function endDrag(e) { if (drag && (!e || e.pointerId === drag.id)) { drag = null; refreshUI(); } }
+  cv.addEventListener("pointerup", endDrag);
+  cv.addEventListener("pointercancel", endDrag);
+
+  var EDIT_HINTS = {
+    line: "Drag a white dot to move that point. Drag a small dot between points to add a bend. Drag the yellow square to move the whole line.",
+    path: "Drag the dots to reshape the line along the driveway, or drag a small dot to add a bend. The yellow square moves the whole row. Size changes how big the starbursts look.",
+    wrap: "Drag either end to adjust the wrap, or the yellow square to move it.",
+    bush: "Drag the dot to move it.",
+    wreath: "Drag the dot to move it. Use Turn for a wreath on the side of the house, and Tilt if it hangs on a slanted surface."
+  };
+  function renderEdit() {
+    var st = S.sel != null ? S.strands[S.sel] : null;
+    $("editBar").hidden = !st;
+    cv.classList.toggle("editing", !!st);
+    if (!st) return;
+    $("ebName").textContent = "Editing " + secName(S.sel);
+    $("ebHint").textContent = EDIT_HINTS[st.kind] || "";
+    var sized = st.kind === "wreath" || st.kind === "bush" || st.kind === "path" || st.kind === "wrap";
+    $("ebSizeW").hidden = !sized;
+    ["ebTurnW", "ebTiltW", "ebSpinW"].forEach(function (id) { $(id).hidden = st.kind !== "wreath"; });
+    if (sized) {
+      var key = st.kind === "wrap" ? "w" : "rad";
+      if (!st.base) st.base = st[key];
+      $("ebSize").value = Math.round(st[key] / st.base * 100);
+      $("ebSizeV").textContent = $("ebSize").value + "%";
+    }
+    if (st.kind === "wreath") {
+      $("ebTurn").value = st.ry || 0; $("ebTurnV").textContent = (st.ry || 0) + "\u00b0";
+      $("ebTilt").value = st.rx || 0; $("ebTiltV").textContent = (st.rx || 0) + "\u00b0";
+      $("ebSpin").value = st.rz || 0; $("ebSpinV").textContent = (st.rz || 0) + "\u00b0";
+    }
+  }
+  function selSt() { return S.sel != null ? S.strands[S.sel] : null; }
+  $("ebSize").addEventListener("input", function () {
+    var st = selSt(); if (!st || !st.base) return;
+    st[st.kind === "wrap" ? "w" : "rad"] = st.base * parseFloat(this.value) / 100;
+    $("ebSizeV").textContent = this.value + "%"; render(true);
+  });
+  [["ebTurn", "ry", "ebTurnV"], ["ebTilt", "rx", "ebTiltV"], ["ebSpin", "rz", "ebSpinV"]].forEach(function (a) {
+    $(a[0]).addEventListener("input", function () {
+      var st = selSt(); if (!st) return;
+      st[a[1]] = parseFloat(this.value); $(a[2]).textContent = this.value + "\u00b0"; render(true);
+    });
+  });
+  $("ebDone").addEventListener("click", function () { S.sel = null; refreshUI(); });
+  $("ebRemove").addEventListener("click", function () {
+    if (S.sel == null) return;
+    S.strands.splice(S.sel, 1); S.sel = null; refreshUI();
+  });
+
   function secName(i) {
     var st = S.strands[i], c = catById(st.cat), n = 0, tot = 0;
     S.strands.forEach(function (o, j) { if (o.cat === st.cat) { tot++; if (j <= i) n++; } });
@@ -1603,7 +1818,10 @@
       var reps = st.seq.length === 1 ? 1 : Math.max(1, Math.floor(6 / st.seq.length));
       for (var r = 0; r < reps; r++) st.seq.forEach(function (k) { var d = document.createElement("i"); d.style.background = rgbCss(k); pv.appendChild(d); });
       b.appendChild(nm); b.appendChild(pv);
-      b.addEventListener("click", function () { S.sel = S.sel === i ? null : i; $("applyNote").textContent = ""; refreshUI(); });
+      b.addEventListener("click", function () {
+        commitDraft(); S.sel = S.sel === i ? null : i; $("applyNote").textContent = ""; refreshUI();
+        if (S.sel != null) try { $("stage").scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {}
+      });
       var del = document.createElement("button"); del.type = "button"; del.className = "secdel";
       del.setAttribute("aria-label", "Remove " + secName(i)); del.textContent = "\u00d7";
       del.addEventListener("click", function () {
@@ -1632,7 +1850,8 @@
   cv.addEventListener("click", function (e) {
     if (!S.base) return;
     var r = cv.getBoundingClientRect(), p = [(e.clientX - r.left) * S.W / r.width, (e.clientY - r.top) * S.H / r.height], t = tool();
-    if (t === "line") S.draft.push(p);
+    if (S.sel != null) return;
+    if (t === "line" || t === "path") S.draft.push(p);
     else if (t === "wrap") {
       S.draft.push(p);
       if (S.draft.length === 2) { S.strands.push({ kind: "wrap", cat: S.cat, pts: S.draft.slice(), seq: curSeq(), r: bulbR(), w: wrapPx() }); S.draft = []; }
