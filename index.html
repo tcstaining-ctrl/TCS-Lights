@@ -147,6 +147,16 @@
   .patrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
   .patrow label { font-size: 14px; color: var(--muted); }
   .patrow select { width: auto; }
+  .subh { font: 600 18px "Barlow Condensed", "Arial Narrow", sans-serif; margin: 16px 0 8px; }
+  .secs { display: grid; gap: 6px; }
+  .secrow { display: flex; gap: 6px; align-items: stretch; }
+  .secbtn { flex: 1; display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: left;
+    min-height: 48px; padding: 6px 12px; border-radius: 9px; border: 1.5px solid var(--rule); background: var(--field);
+    color: var(--ink); font: 600 15px "Barlow", sans-serif; cursor: pointer; }
+  .secbtn[aria-pressed="true"] { border-color: var(--pine); box-shadow: inset 0 0 0 1.5px var(--pine); }
+  .secbtn .seqprev { gap: 3px; min-height: 0; flex-wrap: nowrap; }
+  .secbtn .seqprev i { width: 14px; height: 14px; }
+  .secdel { min-width: 48px; border-radius: 9px; border: 1.5px solid var(--rule); background: transparent; color: var(--muted); font: 600 20px "Barlow", sans-serif; cursor: pointer; }
   .seqprev { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; min-height: 26px; }
   .seqprev i { width: 22px; height: 22px; border-radius: 50%; display: inline-block; border: 1px solid rgba(0,0,0,.35); }
   .sliders { display: grid; gap: 10px; grid-template-columns: 1fr; margin-top: 12px; }
@@ -288,20 +298,32 @@
         <button class="btn" id="zoomIn" type="button" aria-label="Zoom in">+</button>
         <button class="btn" id="newPhoto" type="button">New photo</button>
       </div>
+    </div>
+
+    <div class="panel" aria-labelledby="patHead">
+      <h2 id="patHead">Bulb pattern</h2>
+      <p class="hint">Pick a pattern, then put it on every section or only the one you selected below. Anything you draw next uses it too.</p>
+      <div class="patrow"><label for="preset">Pattern</label><select id="preset"></select></div>
+      <div class="swatches" id="swatches" role="group" aria-label="Light color"></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="buildBtn" type="button" aria-pressed="false">Build my own</button>
+        <button class="btn" id="seqBack" type="button" hidden>Remove last</button>
+      </div>
+      <div class="seqprev" id="seqPrev" style="margin-top:8px" aria-live="polite"></div>
+      <p class="small" id="seqNote"></p>
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="applyAll" type="button">Apply to all sections</button>
+        <button class="btn" id="applySel" type="button" disabled>Apply to selected</button>
+      </div>
+      <p class="small" id="applyNote" aria-live="polite"></p>
+      <h3 class="subh">Sections</h3>
+      <div class="secs" id="secs"></div>
       <details style="margin-top:12px">
-        <summary>Colors, pattern and look</summary>
-        <div class="patrow"><label for="preset">Pattern</label><select id="preset"></select></div>
-        <div class="swatches" id="swatches" role="group" aria-label="Light color"></div>
-        <div class="row" style="margin-top:10px">
-          <button class="btn" id="buildBtn" type="button" aria-pressed="false">Build my own</button>
-          <button class="btn" id="seqBack" type="button" hidden>Remove last</button>
-        </div>
-        <div class="seqprev" id="seqPrev" style="margin-top:8px" aria-live="polite"></div>
-        <p class="small" id="seqNote"></p>
+        <summary>Bulb size, spacing and dusk</summary>
         <div class="sliders">
           <div><label for="sizeR">Bulb size <b id="sizeV"></b></label><input id="sizeR" type="range" min="2" max="14" step="1" value="5"></div>
           <div><label for="spaceR">Bulb spacing <b id="spaceV"></b></label><input id="spaceR" type="range" min="10" max="60" step="1" value="24"></div>
-          <div><label for="wrapR">Wrap and bush size <b id="wrapV"></b></label><input id="wrapR" type="range" min="10" max="100" step="1" value="35"></div>
+          <div><label for="wrapR">Wrap, bush and wreath size <b id="wrapV"></b></label><input id="wrapR" type="range" min="10" max="100" step="1" value="35"></div>
           <div><label for="duskR">Dusk <b id="duskV"></b></label><input id="duskR" type="range" min="0" max="85" step="1" value="60"></div>
         </div>
       </details>
@@ -478,7 +500,8 @@
     { id: "gar",  name: "Garage door",             kind: "line",  unit: "ft", reR: 4,  newR: 14 },
     { id: "pil",  name: "Pillars and columns",     kind: "wrap",  unit: "strand", one: "pillar", many: "pillars", reR: 17.5, newR: 45 },
     { id: "tre",  name: "Trees",                   kind: "wrap",  unit: "strand", one: "tree",   many: "trees",   reR: 17.5, newR: 45 },
-    { id: "bus",  name: "Bushes",                  kind: "bush",  unit: "strand", one: "bush",   many: "bushes",  reR: 17.5, newR: 45 }
+    { id: "bus",  name: "Bushes",                  kind: "bush",  unit: "strand", one: "bush",   many: "bushes",  reR: 17.5, newR: 45 },
+    { id: "wre",  name: "Lit wreaths",             kind: "wreath", unit: "each",  one: "wreath", many: "wreaths", reR: 135, newR: 325 }
   ];
   function defaultCfg() {
     var c = { customer: "", address: "", baseRe: 100, reMine: 1.5, reCust: 2, minNew: 0, cust: false, rates: {}, adjust: {} };
@@ -1177,7 +1200,7 @@
   ];
   function rgbCss(k) { return "rgb(" + COLORS[k].rgb.join(",") + ")"; }
 
-  var S = { base: null, W: 0, H: 0, strands: [], draft: [], scaleDraft: [], cat: "c9", scaling: false, seq: ["warm"], build: false, pxPerFt: null, zoom: 1 };
+  var S = { base: null, W: 0, H: 0, strands: [], draft: [], scaleDraft: [], cat: "c9", scaling: false, seq: ["warm"], build: false, pxPerFt: null, zoom: 1, sel: null };
   function catById(id) { return CATS.filter(function (c) { return c.id === id; })[0]; }
   function tool() { return S.scaling ? "scale" : catById(S.cat).kind; }
 
@@ -1240,6 +1263,33 @@
     }
     return out;
   }
+  function wreathDots(st) {
+    var out = [], c = st.pts[0], n = 30;
+    for (var i = 0; i < n; i++) {
+      var a = i / n * 6.2832, rr = st.rad * (i % 2 ? 0.86 : 1.06);
+      out.push([c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr]);
+    }
+    return out;
+  }
+  function drawWreathBase(st) {
+    var c = st.pts[0], R = st.rad;
+    ctx.save(); ctx.lineCap = "round";
+    ctx.strokeStyle = "rgb(22,58,34)"; ctx.lineWidth = R * 0.5;
+    ctx.beginPath(); ctx.arc(c[0], c[1], R * 0.96, 0, 6.2832); ctx.stroke();
+    ctx.strokeStyle = "rgb(38,88,50)"; ctx.lineWidth = Math.max(1.5, R * 0.06);
+    for (var i = 0; i < 36; i++) {
+      var a = i / 36 * 6.2832, r1 = R * (i % 2 ? 0.76 : 0.82), r2 = R * (i % 2 ? 1.12 : 1.18);
+      ctx.beginPath(); ctx.moveTo(c[0] + Math.cos(a) * r1, c[1] + Math.sin(a) * r1);
+      ctx.lineTo(c[0] + Math.cos(a + 0.12) * r2, c[1] + Math.sin(a + 0.12) * r2); ctx.stroke();
+    }
+    var bx = c[0], by = c[1] + R, b = R * 0.28;
+    ctx.fillStyle = "rgb(150,20,24)";
+    [[-1.3, -0.7, -1.3, 0.7], [1.3, -0.7, 1.3, 0.7], [-0.5, 1.6, -0.1, 1.5], [0.5, 1.6, 0.1, 1.5]].forEach(function (t) {
+      ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + b * t[0], by + b * t[1]); ctx.lineTo(bx + b * t[2], by + b * t[3]); ctx.closePath(); ctx.fill();
+    });
+    ctx.beginPath(); ctx.arc(bx, by, b * 0.35, 0, 6.2832); ctx.fill();
+    ctx.restore();
+  }
   function strandLenPx(st) { return polyLen(st.pts); }
   function drawStrand(st) {
     var k = 0;
@@ -1247,7 +1297,8 @@
     else if (st.kind === "wrap") {
       var sp = Math.max(5, st.r * 2.6);
       wrapSegments(st).forEach(function (s) { samplePoly([s[0], s[1]], sp).forEach(function (p) { dot(p[0], p[1], colorAt(st.seq, k++), st.r * 0.55); }); });
-    } else bushDots(st).forEach(function (p) { dot(p[0], p[1], colorAt(st.seq, k++), st.r * 0.6); });
+    } else if (st.kind === "wreath") wreathDots(st).forEach(function (p) { dot(p[0], p[1], colorAt(st.seq, k++), st.r * 0.6); });
+    else bushDots(st).forEach(function (p) { dot(p[0], p[1], colorAt(st.seq, k++), st.r * 0.6); });
   }
   function marker(p, col, n) {
     var r = Math.max(9, S.W / 110);
@@ -1267,6 +1318,7 @@
     ctx.globalCompositeOperation = "source-over";
     ctx.clearRect(0, 0, S.W, S.H);
     ctx.drawImage(S.base, 0, 0, S.W, S.H);
+    S.strands.forEach(function (st) { if (st.kind === "wreath") drawWreathBase(st); });
     var d = parseFloat($("duskR").value) / 100;
     if (d > 0) {
       var k = 1 - 0.55 * d;
@@ -1277,6 +1329,15 @@
     ctx.globalCompositeOperation = "lighter";
     S.strands.forEach(drawStrand);
     ctx.globalCompositeOperation = "source-over";
+    if (guides && S.sel != null && S.strands[S.sel]) {
+      var ss = S.strands[S.sel];
+      if (ss.kind === "line" || ss.kind === "wrap") guideLine(ss.pts, "#ffffff");
+      else {
+        var rad = ss.kind === "wreath" ? ss.rad * 1.4 : ss.rad * 1.15;
+        ctx.save(); ctx.setLineDash([S.W / 90, S.W / 120]); ctx.lineWidth = Math.max(2, S.W / 500); ctx.strokeStyle = "#ffffff";
+        ctx.beginPath(); ctx.arc(ss.pts[0][0], ss.pts[0][1], rad, 0, 6.2832); ctx.stroke(); ctx.restore();
+      }
+    }
     if (guides) {
       var t = tool();
       if (t === "line" && S.draft.length) { guideLine(S.draft, "#ffe28a"); S.draft.forEach(function (p, i) { marker(p, "#ffe28a", i + 1); }); }
@@ -1313,8 +1374,8 @@
       function ni(step, val) { return h("input", { type: "number", inputmode: "decimal", step: step, value: String(val) }); }
       var adj = ni("1", cfg.adjust[c.id] || 0), rn = ni("0.25", cfg.rates[c.id].n);
       var grid = h("div", { class: "lgrid" });
-      var uw = c.unit === "ft" ? "ft" : "strand";
-      grid.appendChild(fld("Add or subtract (" + (c.unit === "ft" ? "ft" : "strands") + ")", adj));
+      var uw = c.unit === "ft" ? "ft" : (c.unit === "each" ? c.one : "strand");
+      grid.appendChild(fld("Add or subtract (" + (c.unit === "ft" ? "ft" : (c.unit === "each" ? c.many : "strands")) + ")", adj));
       grid.appendChild(fld("New $ per " + uw, rn));
       var rr = null, roofNote = null;
       if (c.roof) { roofNote = h("div", { class: "roofre" }); grid.appendChild(roofNote); }
@@ -1329,7 +1390,7 @@
       if (rr) rr.addEventListener("input", function () { cfg.rates[c.id].r = num(rr.value); saveCfg(); update(); });
     });
   }
-  function qtyLabel(c, q) { return c.unit === "ft" ? q + " ft" : q + (q === 1 ? " strand" : " strands"); }
+  function qtyLabel(c, q) { return c.unit === "ft" ? q + " ft" : c.unit === "each" ? q + " " + (q === 1 ? c.one : c.many) : q + (q === 1 ? " strand" : " strands"); }
   function itemNoun(c, q) { return c.unit === "ft" ? "about " + q + " ft" : q + " " + (q === 1 ? c.one : c.many); }
   function firstName() { return firstWord(cfg.customer); }
   var INCL = "Everything is included: commercial-grade lights, all clips, timers, and labor, plus takedown after the season. The lights are yours to keep, and they carry a lifetime warranty when we do the install.";
@@ -1472,8 +1533,9 @@
   }
   var HINTS = {
     line: "Tap along the line to place points. Tap Finish line when the strand is done.",
-    wrap: "Tap the top of the pillar or trunk, then tap the bottom. Wraps use the first color of your pattern. Each wrap counts as one strand.",
-    bush: "Tap the middle of each bush. Change Wrap and bush size under Colors, pattern and look. Each bush counts as one strand.",
+    wrap: "Tap the top of the pillar or trunk, then tap the bottom. Each wrap counts as one strand.",
+    wreath: "Tap the middle of each wreath. Change its size with Wrap, bush and wreath size under Bulb pattern.",
+    bush: "Tap the middle of each bush. Change its size with Wrap, bush and wreath size under Bulb pattern. Each bush counts as one strand.",
     scale: "Tap both ends of something you know the length of, then enter its length in feet."
   };
   function curSeq() { return S.seq.length ? S.seq.slice() : ["warm"]; }
@@ -1490,7 +1552,7 @@
     $("finishBtn").hidden = t !== "line";
     $("scaleRow").hidden = !(t === "scale" && S.scaleDraft.length === 2);
     $("saveBtn").disabled = !S.base; $("undoBtn").disabled = !S.base; $("clearBtn").disabled = !S.base;
-    readouts(); renderCats(); update(); render(true);
+    readouts(); renderCats(); renderSecs(); update(); render(true);
   }
   var sw = $("swatches"), preset = $("preset");
   PRESETS.forEach(function (p) { preset.appendChild(h("option", { value: p.id, text: p.name })); });
@@ -1521,23 +1583,71 @@
     PRESETS.forEach(function (p) { if (p.seq && !S.build && p.seq.join() === S.seq.join()) match = p.id; });
     preset.value = match;
   }
+  function secName(i) {
+    var st = S.strands[i], c = catById(st.cat), n = 0, tot = 0;
+    S.strands.forEach(function (o, j) { if (o.cat === st.cat) { tot++; if (j <= i) n++; } });
+    return c.name + (tot > 1 ? " " + n : "");
+  }
+  function renderSecs() {
+    var host = $("secs"); host.textContent = "";
+    if (!S.strands.length) {
+      var p = document.createElement("p"); p.className = "small"; p.style.margin = "0";
+      p.textContent = "Sections you draw show up here. Tap one to select it."; host.appendChild(p);
+    }
+    S.strands.forEach(function (st, i) {
+      var row = document.createElement("div"); row.className = "secrow";
+      var b = document.createElement("button"); b.type = "button"; b.className = "secbtn";
+      b.setAttribute("aria-pressed", String(S.sel === i));
+      var nm = document.createElement("span"); nm.textContent = secName(i);
+      var pv = document.createElement("span"); pv.className = "seqprev";
+      var reps = st.seq.length === 1 ? 1 : Math.max(1, Math.floor(6 / st.seq.length));
+      for (var r = 0; r < reps; r++) st.seq.forEach(function (k) { var d = document.createElement("i"); d.style.background = rgbCss(k); pv.appendChild(d); });
+      b.appendChild(nm); b.appendChild(pv);
+      b.addEventListener("click", function () { S.sel = S.sel === i ? null : i; $("applyNote").textContent = ""; refreshUI(); });
+      var del = document.createElement("button"); del.type = "button"; del.className = "secdel";
+      del.setAttribute("aria-label", "Remove " + secName(i)); del.textContent = "\u00d7";
+      del.addEventListener("click", function () {
+        S.strands.splice(i, 1);
+        if (S.sel === i) S.sel = null; else if (S.sel != null && S.sel > i) S.sel--;
+        refreshUI();
+      });
+      row.appendChild(b); row.appendChild(del); host.appendChild(row);
+    });
+    $("applyAll").disabled = !S.strands.length;
+    $("applySel").disabled = S.sel == null;
+  }
+  $("applyAll").addEventListener("click", function () {
+    commitDraft();
+    var seq = curSeq();
+    S.strands.forEach(function (st) { st.seq = seq.slice(); });
+    $("applyNote").textContent = "Pattern is on all " + S.strands.length + " sections.";
+    refreshUI();
+  });
+  $("applySel").addEventListener("click", function () {
+    if (S.sel == null || !S.strands[S.sel]) return;
+    S.strands[S.sel].seq = curSeq();
+    $("applyNote").textContent = "Pattern is on " + secName(S.sel) + ".";
+    refreshUI();
+  });
   cv.addEventListener("click", function (e) {
     if (!S.base) return;
     var r = cv.getBoundingClientRect(), p = [(e.clientX - r.left) * S.W / r.width, (e.clientY - r.top) * S.H / r.height], t = tool();
     if (t === "line") S.draft.push(p);
     else if (t === "wrap") {
       S.draft.push(p);
-      if (S.draft.length === 2) { S.strands.push({ kind: "wrap", cat: S.cat, pts: S.draft.slice(), seq: [curSeq()[0]], r: bulbR(), w: wrapPx() }); S.draft = []; }
+      if (S.draft.length === 2) { S.strands.push({ kind: "wrap", cat: S.cat, pts: S.draft.slice(), seq: curSeq(), r: bulbR(), w: wrapPx() }); S.draft = []; }
     } else if (t === "bush") S.strands.push({ kind: "bush", cat: S.cat, pts: [p], seq: curSeq(), r: bulbR(), rad: wrapPx() * 1.4 });
+    else if (t === "wreath") S.strands.push({ kind: "wreath", cat: S.cat, pts: [p], seq: curSeq(), r: bulbR(), rad: wrapPx() * 1.2 });
     else if (t === "scale") { if (S.scaleDraft.length >= 2) S.scaleDraft = []; S.scaleDraft.push(p); }
     refreshUI();
   });
   $("finishBtn").addEventListener("click", function () { commitDraft(); refreshUI(); });
   $("undoBtn").addEventListener("click", function () {
     if (S.scaling && S.scaleDraft.length) S.scaleDraft.pop(); else if (S.draft.length) S.draft.pop(); else S.strands.pop();
+    if (S.sel != null && S.sel >= S.strands.length) S.sel = null;
     refreshUI();
   });
-  $("clearBtn").addEventListener("click", function () { S.strands = []; S.draft = []; S.scaleDraft = []; refreshUI(); });
+  $("clearBtn").addEventListener("click", function () { S.strands = []; S.draft = []; S.scaleDraft = []; S.sel = null; refreshUI(); });
   $("preset16").addEventListener("click", function () { $("scaleFt").value = "16"; });
   $("preset9").addEventListener("click", function () { $("scaleFt").value = "9"; });
   $("scaleApply").addEventListener("click", function () {
@@ -1559,7 +1669,7 @@
       var off = document.createElement("canvas"); off.width = S.W; off.height = S.H;
       off.getContext("2d").drawImage(img, 0, 0, S.W, S.H);
       S.base = off; cv.width = S.W; cv.height = S.H;
-      S.strands = []; S.draft = []; S.scaleDraft = []; S.pxPerFt = null; S.zoom = 1; S.scaling = false;
+      S.strands = []; S.draft = []; S.scaleDraft = []; S.pxPerFt = null; S.zoom = 1; S.scaling = false; S.sel = null;
       $("empty").classList.add("hidden"); URL.revokeObjectURL(url); applyZoom(); refreshUI();
     };
     img.onerror = function () { $("hint").textContent = "That file couldn't be opened as a photo. Try another one."; };
