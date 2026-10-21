@@ -196,6 +196,21 @@
   td.n, th.n { text-align: right; }
   tfoot td { font-weight: 600; border-bottom: 0; }
   .msghead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; margin: 14px 0 6px; }
+  .rrow { border-top: 1px solid var(--rule); padding: 14px 0; }
+  .rrow:first-child { border-top: 0; padding-top: 4px; }
+  .rrow.off { opacity: .55; }
+  .rrow.done .rnum { background: var(--soft); color: var(--muted); }
+  .rhead { display: flex; gap: 12px; align-items: center; }
+  .rnum { flex: none; min-width: 44px; height: 44px; padding: 0 6px; border-radius: 10px; background: var(--pine); color: var(--pine-ink);
+    display: flex; align-items: center; justify-content: center; font: 700 24px/1 "Barlow Condensed", "Arial Narrow", sans-serif; font-variant-numeric: tabular-nums; }
+  .rtexts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .rchecks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+  .rcheck { display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 10px; border: 1.5px solid var(--rule); border-radius: 9px; background: var(--field); font-weight: 600; font-size: 15px; cursor: pointer; }
+  .rcheck input { width: 22px; height: 22px; accent-color: var(--pine); flex: none; margin: 0; }
+  .rcheck.on { border-color: var(--pine); }
+  .rneed { margin-top: 10px; padding: 10px; border-radius: 9px; background: var(--amber-bg); }
+  .rmove { margin-top: 8px; }
+  .rmove .btn { min-height: 36px; font-size: 14px; color: var(--muted); border-color: var(--rule); }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
@@ -440,6 +455,33 @@
     </section>
   </main>
 
+  <!-- ===================== ROUTE ===================== -->
+  <main id="tab_route" hidden>
+    <div class="top">
+      <h1>Route</h1>
+      <div class="row" style="gap:22px">
+        <div><div class="stat" id="r_statTotal">0</div><div class="statl">houses</div></div>
+        <div><div class="stat" id="r_statInst">0</div><div class="statl">installed</div></div>
+        <div><div class="stat" id="r_statPaid">0</div><div class="statl">paid</div></div>
+        <div><div class="stat" id="r_statDown">0</div><div class="statl">taken down</div></div>
+      </div>
+    </div>
+    <section class="card">
+      <h2>Order by location</h2>
+      <p class="hint" id="r_sortHint"></p>
+      <label class="l" for="r_start">Start from</label>
+      <input id="r_start" type="text" autocomplete="off">
+      <div class="row" style="margin-top:10px"><button class="btn primary" id="r_sort" type="button">Sort by location</button></div>
+      <p class="small" id="r_note" aria-live="polite"></p>
+    </section>
+    <section class="card">
+      <div class="chips" id="r_chips" role="group" aria-label="Show"></div>
+      <div class="msghead" style="margin-top:0"><h3 id="r_count">Houses</h3></div>
+      <p class="small" style="margin:0 0 8px">Schedule texts use each house's date, or the "nearby" date on the Texts tab if it's blank.</p>
+      <div id="r_list"></div>
+    </section>
+  </main>
+
   <!-- ===================== BACKUP ===================== -->
   <main id="tab_backup" hidden>
     <div class="top"><h1>Backup</h1><div class="statl" id="b_summary"></div></div>
@@ -462,6 +504,7 @@
 <nav class="tabbar" aria-label="Sections">
   <button type="button" data-tab="customers" aria-current="page">Customers</button>
   <button type="button" data-tab="quote">Quote</button>
+  <button type="button" data-tab="route">Route</button>
   <button type="button" data-tab="texts">Texts</button>
   <button type="button" data-tab="backup">Backup</button>
 </nav>
@@ -797,7 +840,7 @@
   }
 
   // ---------- tabs ----------
-  var TABS = ["customers", "quote", "texts", "backup"];
+  var TABS = ["customers", "quote", "route", "texts", "backup"];
   var currentTab = "customers";
   function showTab(t) {
     currentTab = t;
@@ -806,6 +849,7 @@
     window.scrollTo(0, 0);
     if (t === "customers") { openList(); }
     if (t === "quote") { fillQuoteSelect(); applyZoom(); update(); }
+    if (t === "route") renderRoute();
     if (t === "texts") renderTexts();
     if (t === "backup") renderBackup();
   }
@@ -1136,6 +1180,264 @@
       ]));
     });
   }
+
+  // ====================== ROUTE ======================
+  // Numbered list of houses in driving order. Locations are looked up on this phone
+  // (US Census address finder, then OpenStreetMap as a fallback) and saved on each customer.
+  var RSTART_KEY = "tcslights:routeStart";
+  var DEFAULT_START = "1639 Meadow Hills Dr, West Richland, WA 99353";
+  function routeStart() { try { return localStorage.getItem(RSTART_KEY) || DEFAULT_START; } catch (e) { return DEFAULT_START; } }
+  var rFilt = "all", rBusy = false;
+  var CHECKS = [{ id: "installed", name: "Installed" }, { id: "paid", name: "Paid" }, { id: "down", name: "Taken down" }];
+
+  function checksOf(c) { if (!c.checks) c.checks = {}; if (!c.checks[SEASON]) c.checks[SEASON] = {}; return c.checks[SEASON]; }
+  function isChecked(c, k) { return !!(c.checks && c.checks[SEASON] && c.checks[SEASON][k]); }
+  function locText(c) { return (c.locHint && c.locHint.trim()) || (c.address || "").trim(); }
+  function hasGeo(c) { return !!(c.geo && isFinite(c.geo.lat) && c.geo.q === locText(c)); }
+  function withState(q) {
+    q = q.replace(/\s+/g, " ").trim();
+    if (!/\b(WA|Washington)\b/i.test(q)) q += /\d{5}\s*$/.test(q) ? "" : ", WA";
+    return q;
+  }
+  function censusLookup(q) {
+    return new Promise(function (resolve) {
+      var cb = "tcsgeo" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      var s = document.createElement("script"), t;
+      function done(v) { clearTimeout(t); try { delete window[cb]; } catch (e) { window[cb] = undefined; } s.remove(); resolve(v); }
+      window[cb] = function (d) {
+        try {
+          var m = d.result.addressMatches;
+          if (m && m.length) done({ lat: m[0].coordinates.y, lng: m[0].coordinates.x });
+          else done(null);
+        } catch (e) { done(null); }
+      };
+      s.onerror = function () { done(null); };
+      t = setTimeout(function () { done(null); }, 12000);
+      s.src = "https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?benchmark=Public_AR_Current&format=jsonp&callback=" + cb + "&address=" + encodeURIComponent(q);
+      document.head.appendChild(s);
+    });
+  }
+  var lastOsm = 0;
+  function osmLookup(q) {
+    var wait = Math.max(0, lastOsm + 1100 - Date.now());
+    return new Promise(function (r) { setTimeout(r, wait); }).then(function () {
+      lastOsm = Date.now();
+      // Bias to the Tri-Cities / Walla Walla area.
+      var url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&viewbox=-119.9,46.6,-118.0,45.9&q=" + encodeURIComponent(q);
+      return fetch(url, { headers: { "Accept": "application/json" } }).then(function (r) { return r.json(); }).then(function (a) {
+        return a && a.length ? { lat: +a[0].lat, lng: +a[0].lon } : null;
+      });
+    }).catch(function () { return null; });
+  }
+  function lookup(text) {
+    var q = withState(text);
+    return censusLookup(q).then(function (g) { return g || osmLookup(q); });
+  }
+  function km(a, b) {
+    var R = 6371, toR = Math.PI / 180, dLat = (b.lat - a.lat) * toR, dLng = (b.lng - a.lng) * toR;
+    var x = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(a.lat * toR) * Math.cos(b.lat * toR) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return 2 * R * Math.asin(Math.sqrt(x));
+  }
+  // Open path from start through every point: nearest neighbor, then 2-opt clean-up.
+  function orderPoints(start, pts) {
+    if (!pts.length) return [];
+    var left = pts.slice(), path = [], cur = start;
+    while (left.length) {
+      var bi = 0, bd = Infinity;
+      for (var i = 0; i < left.length; i++) { var d = km(cur, left[i]); if (d < bd) { bd = d; bi = i; } }
+      cur = left.splice(bi, 1)[0]; path.push(cur);
+    }
+    var all = [start].concat(path), improved = true, guard = 0;
+    while (improved && guard++ < 60) {
+      improved = false;
+      for (var a = 0; a < all.length - 2; a++) {
+        for (var b = a + 2; b < all.length; b++) {
+          var a1 = all[a], a2 = all[a + 1], b1 = all[b], b2 = all[b + 1];
+          var before = km(a1, a2) + (b2 ? km(b1, b2) : 0);
+          var after = km(a1, b1) + (b2 ? km(a2, b2) : 0);
+          if (after + 1e-9 < before) {
+            var seg = all.slice(a + 1, b + 1).reverse();
+            Array.prototype.splice.apply(all, [a + 1, seg.length].concat(seg));
+            improved = true;
+          }
+        }
+      }
+    }
+    return all.slice(1);
+  }
+  function routeCustomers() {
+    return DB.customers.slice().sort(function (a, b) {
+      var ra = a.route || 1e9, rb = b.route || 1e9;
+      if (ra !== rb) return ra - rb;
+      return sortKey(a) < sortKey(b) ? -1 : 1;
+    });
+  }
+  function renumber(list) { list.forEach(function (c, i) { c.route = i + 1; }); }
+
+  function findAndSort() {
+    if (rBusy) return;
+    rBusy = true; $("r_sort").disabled = true;
+    var note = $("r_note");
+    var startText = $("r_start").value.trim() || DEFAULT_START;
+    try { localStorage.setItem(RSTART_KEY, startText); } catch (e) {}
+    var todo = DB.customers.filter(function (c) { return locText(c) && !hasGeo(c); });
+    var startGeo = null, i = 0, misses = 0;
+    note.textContent = "Finding your starting point…";
+    lookup(startText).then(function (g) {
+      startGeo = g;
+      function next() {
+        if (i >= todo.length) return Promise.resolve();
+        var c = todo[i++];
+        note.textContent = "Finding houses on the map: " + i + " of " + todo.length + "…";
+        return lookup(locText(c)).then(function (g2) {
+          if (g2) c.geo = { lat: g2.lat, lng: g2.lng, q: locText(c) };
+          else { c.geo = null; misses++; }
+          if (i % 10 === 0) saveDB();
+          return next();
+        });
+      }
+      return next();
+    }).then(function () {
+      var located = DB.customers.filter(hasGeo);
+      if (!startGeo) startGeo = located[0] ? located[0].geo : null;
+      var pts = located.map(function (c) { return { lat: c.geo.lat, lng: c.geo.lng, c: c }; });
+      var ordered = startGeo ? orderPoints(startGeo, pts) : pts;
+      var rest = DB.customers.filter(function (c) { return !hasGeo(c); }).sort(function (a, b) { return sortKey(a) < sortKey(b) ? -1 : 1; });
+      renumber(ordered.map(function (p) { return p.c; }).concat(rest));
+      saveDB();
+      var need = rest.length;
+      note.textContent = "Sorted " + ordered.length + " houses by location." +
+        (need ? " " + need + (need === 1 ? " house couldn't be placed and is" : " houses couldn't be placed and are") + " at the bottom marked Needs location." : "") +
+        (!startGeo ? " Couldn't find the starting address, so the list starts from the first house." : "");
+    }).catch(function () {
+      saveDB(); note.textContent = "Something went wrong looking up addresses. Check your internet and tap again; it picks up where it left off.";
+    }).then(function () { rBusy = false; $("r_sort").disabled = false; renderRoute(); });
+  }
+
+  function scheduleMsg(c, p) {
+    var v = tplVars(p.name);
+    v.date = (c.sched && c.sched.trim()) || DB.vars.nearby || "{date}";
+    return fillTemplate(tplText("nearby"), v);
+  }
+  function setCheck(c, k, on) {
+    var ch = checksOf(c);
+    if (on) ch[k] = today(); else delete ch[k];
+    if (k === "installed") {
+      if (on && ["none", "asked", "booked"].indexOf(c.status) >= 0) c.status = "installed";
+      if (!on && c.status === "installed") c.status = "booked";
+    }
+    if (k === "down") {
+      if (on && c.status !== "skip") c.status = "down";
+      if (!on && c.status === "down") c.status = isChecked(c, "installed") ? "installed" : "booked";
+    }
+    saveDB();
+  }
+  function moveRoute(c, dir) {
+    var list = routeCustomers(), i = list.indexOf(c), j = i + dir;
+    if (j < 0 || j >= list.length) return;
+    list.splice(i, 1); list.splice(j, 0, c); renumber(list); saveDB(); renderRoute();
+    var el = document.getElementById("rr_" + c.id); if (el) el.scrollIntoView({ block: "center" });
+  }
+
+  function renderRoute() {
+    if (!$("r_start").value) $("r_start").value = routeStart();
+    var all = routeCustomers();
+    var active = all.filter(function (c) { return c.status !== "skip"; });
+    var cnt = function (k) { return active.filter(function (c) { return isChecked(c, k); }).length; };
+    $("r_statTotal").textContent = active.length;
+    $("r_statInst").textContent = cnt("installed");
+    $("r_statPaid").textContent = cnt("paid");
+    $("r_statDown").textContent = cnt("down");
+    var noGeo = all.filter(function (c) { return !hasGeo(c); }).length;
+    $("r_sortHint").textContent = all.some(function (c) { return c.route; })
+      ? (noGeo ? noGeo + (noGeo === 1 ? " house still needs" : " houses still need") + " a location. Fix them below, then tap again to re-sort." : "Every house is placed. Tap again after adding customers or changing addresses.")
+      : "Looks up every address on the map and numbers the houses in driving order from your start point.";
+
+    var chips = $("r_chips"); chips.textContent = "";
+    [["all", "All"], ["opener", "Not texted yet"], ["installed", "Not installed"], ["paid", "Not paid"], ["down", "Not taken down"], ["noloc", "Needs location"]].forEach(function (f) {
+      chips.appendChild(h("button", { type: "button", class: "chip", "aria-pressed": rFilt === f[0] ? "true" : "false", text: f[1], onclick: function () { rFilt = f[0]; renderRoute(); } }));
+    });
+
+    var host = $("r_list"); host.textContent = "";
+    var shown = all.filter(function (c) {
+      if (c.status === "skip" && rFilt !== "all") return false;
+      if (rFilt === "opener") return c.people.some(function (p) { return phoneE164(p.phone) && !isSent(p, "opener"); });
+      if (rFilt === "noloc") return !hasGeo(c);
+      if (rFilt === "installed" || rFilt === "paid" || rFilt === "down") return !isChecked(c, rFilt);
+      return true;
+    });
+    $("r_count").textContent = shown.length + (shown.length === 1 ? " house" : " houses");
+    if (!DB.customers.length) host.appendChild(h("p", { class: "small", text: "Add or import customers first." }));
+
+    shown.forEach(function (c) {
+      var skip = c.status === "skip";
+      var head = h("div", { class: "rhead" }, [
+        h("div", { class: "rnum", text: c.route ? String(c.route) : "–" }),
+        h("div", { class: "grow" }, [
+          h("div", { class: "cust-name", text: displayName(c) }),
+          h("div", { class: "cust-sub", style: "white-space:normal", text: (c.address || "No address") + (skip ? " · Not this year" : "") })
+        ]),
+        c.address ? h("a", { class: "btn sm", href: "https://maps.apple.com/?daddr=" + encodeURIComponent(withState(c.address)), target: "_blank", rel: "noopener", text: "Map" }) : null
+      ]);
+
+      var texts = h("div", { class: "rtexts" });
+      var phoned = c.people.filter(function (p) { return phoneE164(p.phone); });
+      if (!phoned.length) texts.appendChild(h("p", { class: "small", style: "margin:0", text: "No phone number saved." }));
+      phoned.forEach(function (p) {
+        var who = phoned.length > 1 ? firstWord(p.name) + ": " : "";
+        [["opener", "Opener"], ["nearby", "Schedule"]].forEach(function (t) {
+          var sent = isSent(p, t[0]);
+          var a = h("a", { class: "btn sm" + (sent ? "" : " primary"), href: smsHref(p.phone, t[0] === "nearby" ? scheduleMsg(c, p) : messageFor("opener", p)),
+            text: who + t[1] + (sent ? " ✓" : ""), title: sent ? "Sent " + p.sent[sentKey(t[0])] : "",
+            onclick: function () { markSent(p, t[0]); a.textContent = who + t[1] + " ✓"; a.className = "btn sm"; } });
+          texts.appendChild(a);
+        });
+      });
+
+      var sched = h("input", { type: "text", placeholder: DB.vars.nearby ? "Date (default " + DB.vars.nearby + ")" : "Install date, e.g. Nov 3", autocomplete: "off", "aria-label": "Install date for " + displayName(c) });
+      sched.value = c.sched || "";
+      sched.addEventListener("input", function () { c.sched = this.value; saveDB(); });
+      sched.addEventListener("change", function () { renderRoute(); });
+
+      var checks = h("div", { class: "rchecks" });
+      CHECKS.forEach(function (k) {
+        var box = h("input", { type: "checkbox" }); box.checked = isChecked(c, k.id);
+        box.addEventListener("change", function () { setCheck(c, k.id, box.checked); renderRoute(); });
+        checks.appendChild(h("label", { class: "rcheck" + (box.checked ? " on" : "") }, [box, h("span", { text: k.name })]));
+      });
+
+      var kids = [head, texts, h("div", { class: "row", style: "margin-top:8px" }, [h("div", { class: "grow" }, [sched])]), checks];
+
+      if (!hasGeo(c)) {
+        var hint = h("input", { type: "text", placeholder: "Neighborhood, cross streets, or a nearby address", autocomplete: "off", "aria-label": "Location hint for " + displayName(c) });
+        hint.value = c.locHint || "";
+        var msg = h("p", { class: "small", style: "margin:4px 0 0" });
+        var go = h("button", { type: "button", class: "btn sm", text: "Find", onclick: function () {
+          c.locHint = hint.value.trim(); saveDB();
+          if (!locText(c)) { msg.textContent = "Type an address or neighborhood first."; return; }
+          go.disabled = true; msg.textContent = "Looking it up…";
+          lookup(locText(c)).then(function (g) {
+            go.disabled = false;
+            if (g) { c.geo = { lat: g.lat, lng: g.lng, q: locText(c) }; saveDB(); msg.textContent = "Found. Tap Sort by location at the top to slot this house in."; }
+            else msg.textContent = "Couldn't find that. Try a street name and town, like \"Keene Rd, Richland\".";
+          });
+        } });
+        kids.push(h("div", { class: "rneed" }, [
+          h("div", { class: "pill asked", style: "display:inline-block;margin-bottom:6px", text: "Needs location" }),
+          h("div", { class: "row" }, [h("div", { class: "grow" }, [hint]), go]), msg
+        ]));
+      }
+
+      kids.push(h("div", { class: "row rmove" }, [
+        h("button", { type: "button", class: "btn sm", text: "▲ Up", onclick: function () { moveRoute(c, -1); } }),
+        h("button", { type: "button", class: "btn sm", text: "▼ Down", onclick: function () { moveRoute(c, 1); } }),
+        h("button", { type: "button", class: "btn sm", text: "Details", onclick: function () { showTab("customers"); openDetail(c.id); } })
+      ]));
+      host.appendChild(h("div", { class: "rrow" + (skip ? " off" : "") + (isChecked(c, "down") ? " done" : ""), id: "rr_" + c.id }, kids));
+    });
+  }
+  $("r_sort").addEventListener("click", findAndSort);
+  $("r_start").addEventListener("change", function () { try { localStorage.setItem(RSTART_KEY, this.value.trim() || DEFAULT_START); } catch (e) {} });
 
   // ====================== BACKUP ======================
   function renderBackup() {
