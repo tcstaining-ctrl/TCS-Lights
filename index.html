@@ -76,7 +76,7 @@
     padding: 6px 10px; font: 500 17px "Barlow", sans-serif; max-width: 100%; }
   input[type="number"], input[type="text"], input[type="search"], input[type="tel"], select, textarea { width: 100%; }
   textarea { min-height: 120px; line-height: 1.45; resize: vertical; font-weight: 400; }
-  label.l { display: block; font-size: 13px; color: var(--muted); margin: 0 0 4px; }
+  label.l, span.l { display: block; font-size: 13px; color: var(--muted); margin: 0 0 4px; }
   .fields { display: grid; gap: 10px; grid-template-columns: 1fr; }
   @media (min-width: 560px) { .fields.two { grid-template-columns: 1fr 1fr; } }
 
@@ -211,6 +211,38 @@
   .rneed { margin-top: 10px; padding: 10px; border-radius: 9px; background: var(--amber-bg); }
   .rmove { margin-top: 8px; }
   .rmove .btn { min-height: 36px; font-size: 14px; color: var(--muted); border-color: var(--rule); }
+  /* estimates */
+  .esthead { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .esthead .eno { font: 700 22px/1 "Barlow Condensed", "Arial Narrow", sans-serif; letter-spacing: .3px; }
+  .esthead .est-st { font-size: 12px; font-weight: 600; border-radius: 999px; padding: 3px 9px; background: rgba(246,239,224,.16); }
+  .band .btn { color: var(--band-ink); border-color: rgba(246,239,224,.55); min-height: 40px; font-size: 15px; padding: 0 12px; }
+  .addons { margin-top: 8px; font-size: 14px; opacity: .92; }
+  .views { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 10px; -webkit-overflow-scrolling: touch; }
+  .vchip { flex: none; min-height: 52px; padding: 6px 12px; border-radius: 9px; border: 1.5px solid var(--rule); background: var(--panel); color: var(--ink);
+    cursor: pointer; text-align: left; font: 600 15px/1.15 "Barlow", sans-serif; display: flex; flex-direction: column; gap: 2px; max-width: 180px; }
+  .vchip span { font: 500 13px "Barlow", sans-serif; color: var(--muted); white-space: nowrap; }
+  .vchip[aria-pressed="true"] { border-color: var(--pine); background: var(--pine); color: var(--pine-ink); }
+  .vchip[aria-pressed="true"] span { color: var(--pine-ink); opacity: .85; }
+  .vchip.add { border-style: dashed; color: var(--pine); justify-content: center; }
+  .vset { display: grid; gap: 10px; grid-template-columns: 1fr; margin: 4px 0 12px; }
+  @media (min-width: 560px) { .vset { grid-template-columns: 1.2fr 1fr 1fr; } }
+  .vset .seg { max-width: none; }
+  .estrow { display: flex; gap: 10px; align-items: center; width: 100%; text-align: left; background: transparent; color: var(--ink);
+    border: 0; border-top: 1px solid var(--rule); padding: 10px 2px; cursor: pointer; font: inherit; min-height: 56px; }
+  .estrow:first-child { border-top: 0; }
+  .estrow .eno { font: 700 20px/1 "Barlow Condensed", "Arial Narrow", sans-serif; min-width: 54px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .estrow .amt { font: 600 19px "Barlow Condensed", "Arial Narrow", sans-serif; font-variant-numeric: tabular-nums; }
+  .pill.sent { background: var(--amber-bg); color: var(--amber); }
+  .pill.accepted, .pill.paid { background: var(--pine); color: var(--pine-ink); }
+  .pill.declined { background: transparent; border: 1px solid var(--rule); color: var(--muted); }
+  .picks { display: grid; gap: 6px; margin: 8px 0; }
+  .pick { display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 10px; border: 1.5px solid var(--rule); border-radius: 9px; background: var(--field); font-weight: 600; cursor: pointer; }
+  .pick input { width: 22px; height: 22px; accent-color: var(--pine); margin: 0; flex: none; }
+  .pick .grow { font-weight: 600; }
+  .synced { color: var(--ok); }
+  .syncerr { color: var(--warn); }
+  ol.steps { margin: 6px 0 12px; padding-left: 22px; }
+  ol.steps li { margin: 0 0 8px; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
@@ -255,16 +287,30 @@
   <!-- ===================== QUOTE ===================== -->
   <main id="tab_quote" hidden>
     <div class="band">
-      <h1>Christmas light quote</h1>
+      <div class="esthead">
+        <span class="eno" id="e_no">New estimate</span>
+        <span class="est-st" id="e_st" hidden></span>
+        <div class="grow"></div>
+        <button class="btn" id="e_all" type="button">All estimates</button>
+        <button class="btn" id="e_new" type="button">New</button>
+      </div>
       <label class="l" for="q_sel" style="color:var(--band-ink);opacity:.8">Customer from your list</label>
       <select id="q_sel" aria-label="Customer from your list"></select>
       <input class="cust" id="cust" type="text" placeholder="Name for the message" aria-label="Name for the message" autocomplete="off">
+      <input class="cust" id="addr" type="text" placeholder="Address" aria-label="Address" autocomplete="street-address">
       <div class="totals2">
-        <div><div class="big" id="bigNew">$0</div><div class="bigl">New install, takedown included</div></div>
+        <div><div class="big" id="bigNew">$0</div><div class="bigl" id="newLabel">Estimate total</div></div>
         <div><div class="mid" id="bigRe">$0</div><div class="bigl" id="reLabel">Reinstall next year</div></div>
       </div>
+      <div class="addons" id="addonNote"></div>
       <div class="minnote" id="minNote"></div>
     </div>
+
+    <section class="card" id="e_listCard" hidden>
+      <div class="row" style="justify-content:space-between"><h2>All estimates</h2><button class="btn sm" id="e_listClose" type="button">Close</button></div>
+      <input id="e_search" type="search" placeholder="Name, number or address" autocomplete="off" style="margin:8px 0">
+      <div id="e_list"></div>
+    </section>
 
     <section class="card" id="q_histCard" hidden>
       <h2>What we know about this house</h2>
@@ -275,9 +321,7 @@
     <section class="card" aria-labelledby="satHead">
       <details id="satDet">
         <summary id="satHead">Start from a satellite view</summary>
-        <p class="hint" style="margin-top:8px">Type the address, open the satellite view, take a screenshot, then use Choose photo below. Edges seen from straight above read true. Sloped edges like gable ends measure a bit short, so check those with a tape.</p>
-        <label for="addr" class="l">Address</label>
-        <input id="addr" type="text" autocomplete="street-address" placeholder="Street, city">
+        <p class="hint" style="margin-top:8px">Uses the address at the top. Open the satellite view, take a screenshot, then use Choose photo below. Edges seen from straight above read true. Sloped edges like gable ends measure a bit short, so check those with a tape.</p>
         <div class="row" style="margin-top:10px">
           <a class="btn primary" id="mapLink" href="https://www.google.com/maps" target="_blank" rel="noopener">Open in Google Maps</a>
           <a class="btn" id="earthLink" href="https://earth.google.com/web/" target="_blank" rel="noopener">Open in Google Earth</a>
@@ -286,6 +330,14 @@
       </details>
     </section>
 
+    <div class="views" id="views" role="group" aria-label="Photos in this estimate"></div>
+    <div class="vset" id="vset">
+      <div><label class="l" for="v_label">This photo is</label><input id="v_label" type="text" placeholder="Front of house" autocomplete="off"></div>
+      <div><span class="l">Price it as</span><div class="seg" role="group" aria-label="New lights or reinstall" id="v_kind">
+        <button type="button" data-v="new" aria-pressed="true">New lights</button><button type="button" data-v="re" aria-pressed="false">Reinstall</button></div></div>
+      <div><span class="l">On the estimate</span><div class="seg" role="group" aria-label="Included or optional" id="v_opt">
+        <button type="button" data-v="inc" aria-pressed="true">Included</button><button type="button" data-v="opt" aria-pressed="false">Optional</button></div></div>
+    </div>
     <div class="stage" id="stage">
       <canvas id="cv" width="10" height="10" aria-label="Photo with lights drawn on it"></canvas>
       <div class="empty" id="empty">
@@ -332,7 +384,8 @@
         <button class="btn" id="clearBtn" type="button">Clear lights</button>
         <button class="btn" id="zoomOut" type="button" aria-label="Zoom out">&minus;</button>
         <button class="btn" id="zoomIn" type="button" aria-label="Zoom in">+</button>
-        <button class="btn" id="newPhoto" type="button">New photo</button>
+        <button class="btn" id="newPhoto" type="button">Replace photo</button>
+        <button class="btn danger" id="v_remove" type="button">Remove this photo</button>
       </div>
     </div>
 
@@ -392,20 +445,63 @@
         </div>
         <div class="row" style="margin-top:12px"><button class="btn" id="resetRates" type="button">Reset all rates</button></div>
         <p class="small" id="resetNote" aria-live="polite"></p>
+        <p class="small">A saved estimate keeps the rates it was made with. Rates you change here are used for new estimates and for the one that's open.</p>
+      </details>
+    </section>
+
+    <section class="card" aria-labelledby="bizHead">
+      <details>
+        <summary id="bizHead">Your business info</summary>
+        <p class="hint" style="margin-top:8px">Shows on estimate and invoice pictures.</p>
+        <div class="fields two">
+          <div><label class="l" for="b_name">Business name</label><input id="b_name" type="text" autocomplete="off"></div>
+          <div><label class="l" for="b_phone">Phone</label><input id="b_phone" type="tel" autocomplete="off"></div>
+          <div><label class="l" for="b_pay">How to pay (on invoices)</label><input id="b_pay" type="text" autocomplete="off" placeholder="Cash, check, or Venmo @..."></div>
+          <div><label class="l" for="b_next">Next estimate number</label><input id="b_next" type="number" inputmode="numeric" min="1" step="1"></div>
+        </div>
+        <label class="row" style="margin-top:10px;gap:10px;min-height:44px"><input type="checkbox" id="b_taxNote" style="width:22px;height:22px;accent-color:var(--pine)"> <span>Note "Sales tax added on the final invoice" on estimates with new lights</span></label>
       </details>
     </section>
 
     <section class="card" aria-labelledby="sHead">
       <h2 id="sHead">Send to the customer</h2>
-      <p class="hint">Save the mockup to your photos, then attach it to a text. Square estimates don't carry photos, so the picture goes by text and the price goes on the estimate.</p>
+      <p class="hint" id="e_autosave">Everything saves as you go, photos included.</p>
       <div class="row">
-        <button class="btn primary" id="saveBtn" type="button" disabled>Save mockup image</button>
-        <button class="btn" id="q_save" type="button" disabled>Save quote to customer</button>
+        <button class="btn primary" id="e_pic" type="button" disabled>Make estimate picture</button>
+        <button class="btn" id="saveBtn" type="button" disabled>Save this mockup only</button>
+        <button class="btn" id="e_dup" type="button" disabled>Duplicate</button>
       </div>
       <p class="small" id="saveNote" aria-live="polite"></p>
 
-      <div class="msghead"><h3>Square estimate</h3></div>
-      <p class="hint" style="margin:0 0 8px">Line items to enter on the estimate.</p>
+      <div class="msghead"><h3>Text with prices</h3><span class="small" style="margin:0">Attach the estimate picture</span></div>
+      <textarea id="txtMsg" readonly aria-label="Text message with prices" style="min-height:200px"></textarea>
+      <div class="row" style="margin-top:8px">
+        <a class="btn primary" id="q_sms" href="#" aria-disabled="true">Open in Messages</a>
+        <button class="btn" id="copyTxt" type="button">Copy text</button>
+      </div>
+      <p class="small" id="copyNote" aria-live="polite"></p>
+
+      <details style="margin-top:10px">
+        <summary>For a Square estimate</summary>
+        <div class="msghead"><h3>Estimate message</h3><span class="small" style="margin:0">No prices, goes in the estimate's Message box</span></div>
+        <textarea id="estMsg" readonly aria-label="Estimate message" style="min-height:200px"></textarea>
+        <div class="row" style="margin-top:8px"><button class="btn" id="copyEst" type="button">Copy estimate message</button></div>
+      </details>
+    </section>
+
+    <section class="card" aria-labelledby="aHead">
+      <h2 id="aHead">After they answer</h2>
+      <div class="fields two">
+        <div><label class="l" for="e_status">Estimate status</label><select id="e_status">
+          <option value="draft">Draft</option><option value="sent">Sent</option><option value="accepted">Accepted</option><option value="declined">Declined</option></select></div>
+      </div>
+      <div id="e_pickWrap" hidden>
+        <div class="msghead"><h3>Add-ons they said yes to</h3></div>
+        <div class="picks" id="e_picks"></div>
+      </div>
+
+      <div class="msghead"><h3 id="sqHead">Line items</h3></div>
+      <p class="hint" style="margin:0 0 8px" id="sqHint">Type these into a Square invoice, or use the invoice below.</p>
       <div class="tablewrap">
         <table>
           <thead><tr><th>Item</th><th class="n">Qty</th><th class="n">Each</th><th class="n">Total</th></tr></thead>
@@ -413,18 +509,31 @@
           <tfoot id="sqFoot"></tfoot>
         </table>
       </div>
+      <div class="row" style="margin-top:8px"><button class="btn" id="e_copyLines" type="button">Copy line items</button></div>
 
-      <div class="msghead"><h3>Estimate message</h3><span class="small" style="margin:0">No prices, goes in the estimate's Message box</span></div>
-      <textarea id="estMsg" readonly aria-label="Estimate message" style="min-height:200px"></textarea>
-      <div class="row" style="margin-top:8px"><button class="btn primary" id="copyEst" type="button">Copy estimate message</button></div>
+      <div id="e_invWrap" hidden>
+        <div class="msghead"><h3>Invoice</h3></div>
+        <div class="fields two">
+          <div><label class="l" for="e_tax">Sales tax rate (%)</label><input id="e_tax" type="number" inputmode="decimal" step="0.1" min="0"></div>
+          <div><span class="l">&nbsp;</span><p class="small" id="e_taxNote" style="margin:0"></p></div>
+        </div>
+        <p class="small"><a id="e_taxLink" href="https://webgis.dor.wa.gov/taxratelookup/SalesTax.aspx" target="_blank" rel="noopener">Look up a rate by address</a> (Washington Dept. of Revenue)</p>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" id="e_invPic" type="button">Make invoice picture</button>
+          <a class="btn" id="e_invSms" href="#" aria-disabled="true">Text invoice</a>
+          <button class="btn" id="e_invCopy" type="button">Copy invoice text</button>
+        </div>
+        <p class="small" id="e_invNote" aria-live="polite"></p>
 
-      <div class="msghead"><h3>Text with prices</h3><span class="small" style="margin:0">Send with the mockup attached</span></div>
-      <textarea id="txtMsg" readonly aria-label="Text message with prices" style="min-height:200px"></textarea>
-      <div class="row" style="margin-top:8px">
-        <button class="btn primary" id="copyTxt" type="button">Copy text</button>
-        <a class="btn" id="q_sms" href="#" aria-disabled="true">Open in Messages</a>
+        <div class="msghead"><h3>Payment</h3></div>
+        <div class="fields two">
+          <div><label class="l" for="e_payM">Paid by</label><select id="e_payM">
+            <option>Check</option><option>Cash</option><option>Venmo</option><option>Zelle</option><option>Square</option><option>Other</option></select></div>
+          <div><label class="l" for="e_payAmt">Amount ($)</label><input id="e_payAmt" type="number" inputmode="decimal" step="0.01" min="0"></div>
+        </div>
+        <div class="row" style="margin-top:10px"><button class="btn primary" id="e_paid" type="button">Mark paid</button><button class="btn" id="e_unpaid" type="button" hidden>Undo paid</button></div>
+        <p class="small" id="e_paidNote" aria-live="polite"></p>
       </div>
-      <p class="small" id="copyNote" aria-live="polite"></p>
     </section>
   </main>
 
@@ -486,8 +595,31 @@
   <main id="tab_backup" hidden>
     <div class="top"><h1>Backup</h1><div class="statl" id="b_summary"></div></div>
     <section class="card">
-      <h2>Save a backup</h2>
-      <p class="hint">Your customers live in this phone's browser only. A backup file holds your list, prices, notes, texts and rates. Email it to yourself or keep it in Files.</p>
+      <h2>Automatic backup</h2>
+      <p class="hint" id="s_intro">Copies your customers, estimates and photos to a private GitHub repository every time something changes, and brings them back if this phone is ever replaced. One-time setup, about five minutes.</p>
+      <div id="s_on" hidden>
+        <p style="margin:0 0 6px"><b id="s_state"></b></p>
+        <p class="small" id="s_detail" style="margin:0 0 10px"></p>
+        <div class="row"><button class="btn primary" id="s_now" type="button">Back up now</button><button class="btn" id="s_off" type="button">Turn off</button></div>
+      </div>
+      <div id="s_setup">
+        <ol class="steps">
+          <li>On github.com, signed in as tcstaining-ctrl, make a new repository named <b>TCS-Lights-data</b>. Set it to <b>Private</b> and check <b>Add a README</b>.</li>
+          <li>Go to Settings, Developer settings, Personal access tokens, <b>Fine-grained tokens</b>, Generate new token. Name it "TCS Lights backup", set expiration to the longest allowed, and under Repository access pick <b>Only select repositories</b> and choose TCS-Lights-data.</li>
+          <li>Under Permissions, Repository permissions, set <b>Contents</b> to <b>Read and write</b>. Generate the token and copy it.</li>
+          <li>Paste it below and tap Turn on.</li>
+        </ol>
+        <div class="fields two">
+          <div><label class="l" for="s_repo">Repository</label><input id="s_repo" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+          <div><label class="l" for="s_tok">Token</label><input id="s_tok" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_..."></div>
+        </div>
+        <div class="row" style="margin-top:10px"><button class="btn primary" id="s_go" type="button">Turn on</button></div>
+      </div>
+      <p class="small" id="s_note" aria-live="polite"></p>
+    </section>
+    <section class="card">
+      <h2>Save a backup file</h2>
+      <p class="hint">A backup file holds your list, estimates, prices, notes, texts and rates, but not photos. Email it to yourself or keep it in Files.</p>
       <div class="row"><button class="btn primary" id="b_export" type="button">Save backup file</button></div>
       <p class="small" id="b_exportNote" aria-live="polite"></p>
     </section>
@@ -510,9 +642,13 @@
 </nav>
 
 <dialog id="dlg">
-  <h2>Press and hold the image to save it</h2>
-  <img id="dlgImg" alt="Finished mockup">
-  <button class="btn primary" id="dlgClose" type="button">Close</button>
+  <h2 id="dlgHead">Press and hold the image to save it</h2>
+  <img id="dlgImg" alt="Finished picture">
+  <p class="small" id="dlgNote" style="margin:0 0 10px"></p>
+  <div class="row">
+    <button class="btn primary" id="dlgShare" type="button" hidden>Send or save</button>
+    <button class="btn" id="dlgClose" type="button">Close</button>
+  </div>
 </dialog>
 
 <dialog id="impDlg">
@@ -757,7 +893,15 @@
   ];
   function defaultDB() {
     var t = {}; TEMPLATES.forEach(function (x) { t[x.id] = x.text; });
-    return { v: 1, customers: [], templates: t, vars: { nearby: "", takedown: "" }, cfg: null, lastExport: null };
+    return { v: 1, customers: [], templates: t, vars: { nearby: "", takedown: "" }, cfg: null, lastExport: null,
+      estimates: [], nextNo: 1, biz: defaultBiz(), curEst: null };
+  }
+  function defaultBiz() { return { name: "Tri-Cities Staining / Christmas Lights", phone: "", pay: "", taxNote: true }; }
+  function adoptExtras(d, s) {
+    if (Array.isArray(s.estimates)) d.estimates = s.estimates;
+    if (isFinite(s.nextNo) && s.nextNo > 0) d.nextNo = Math.floor(s.nextNo);
+    if (s.biz) { var b = defaultBiz(); ["name", "phone", "pay"].forEach(function (k) { if (typeof s.biz[k] === "string") b[k] = s.biz[k]; }); if (typeof s.biz.taxNote === "boolean") b.taxNote = s.biz.taxNote; d.biz = b; }
+    if (typeof s.curEst === "string") d.curEst = s.curEst;
   }
   var storageOk = true;
   function loadDB() {
@@ -770,6 +914,7 @@
         if (s.templates) TEMPLATES.forEach(function (x) { if (typeof s.templates[x.id] === "string") d.templates[x.id] = s.templates[x.id]; });
         if (s.vars) { d.vars.nearby = s.vars.nearby || ""; d.vars.takedown = s.vars.takedown || ""; }
         d.cfg = s.cfg || null; d.lastExport = s.lastExport || null;
+        adoptExtras(d, s);
       }
     } catch (e) { storageOk = false; }
     return d;
@@ -778,6 +923,7 @@
   function saveDB() {
     try { localStorage.setItem(DBKEY, JSON.stringify(DB)); storageOk = true; }
     catch (e) { storageOk = false; }
+    syncSoon();
     var b = $("c_backupBanner");
     if (!storageOk) { b.hidden = false; b.textContent = "This browser would not save your changes. Check that private browsing is off, then reload."; }
   }
@@ -882,8 +1028,11 @@
     });
     $("c_statLeft").textContent = left;
     $("c_statBooked").textContent = booked;
-    $("c_backupBanner").hidden = !(DB.customers.length > 0 && !DB.lastExport) || !storageOk && false;
-    if (!storageOk) { $("c_backupBanner").hidden = false; }
+    var bn = $("c_backupBanner"), sc = syncConf(), sa = syncConfAll();
+    if (sc && sa.err) { bn.hidden = false; bn.textContent = "Automatic backup isn't working: " + sa.err; }
+    else if (sc) bn.hidden = true;
+    else { bn.hidden = !(DB.customers.length > 0 && !DB.lastExport); bn.textContent = "No backup yet. Open the Backup tab and turn on Automatic backup so a lost phone can't lose your list."; }
+    if (!storageOk) { bn.hidden = false; bn.textContent = "This browser would not save your changes. Check that private browsing is off, then reload."; }
   }
 
   function renderChips() {
@@ -1067,8 +1216,25 @@
           c.history.push({ id: uid(), season: parseInt(yIn.value, 10) || SEASON, charged: isFinite(amt) ? amt : null, note: nIn.value.trim() });
           c.history.sort(function (a, b) { return a.season - b.season; });
           aIn.value = ""; nIn.value = ""; saveDB(); showHist(); } }),
-        h("button", { type: "button", class: "btn primary", text: "Quote this house", onclick: function () { $("q_sel").value = c.id; showTab("quote"); $("q_sel").value = c.id; selectQuoteCustomer(c.id); } })
       ])
+    ]));
+
+    // estimates
+    var ests = DB.estimates.filter(function (e) { return e.custId === c.id; }).sort(function (a, b) { return b.no - a.no; });
+    var estHost = h("div");
+    if (!ests.length) estHost.appendChild(h("p", { class: "small", style: "margin:0 0 8px", text: "No estimates yet." }));
+    ests.forEach(function (e) { estHost.appendChild(estRow(e, function () { showTab("quote"); openEstimate(e); window.scrollTo(0, 0); })); });
+    var src = ests.filter(function (e) { return (e.status === "accepted" || e.paid) && e.views.some(function (v) { return finalPick(e)(v) && viewQuote(e, v).any; }); })[0];
+    var draft = ests.filter(function (e) { return e.status === "draft" && !e.paid; })[0];
+    host.appendChild(h("section", { class: "card" }, [
+      h("h2", { text: "Estimates" }),
+      estHost,
+      h("div", { class: "row", style: "margin-top:10px" }, [
+        src ? h("button", { type: "button", class: "btn primary", text: "Start next year's reinstall from " + pad4(src.no), onclick: function () { showTab("quote"); reinstallFrom(src, c); window.scrollTo(0, 0); } }) : null,
+        h("button", { type: "button", class: "btn" + (src ? "" : " primary"), text: draft ? "Open draft " + pad4(draft.no) : "New estimate", onclick: function () {
+          showTab("quote"); if (draft) openEstimate(draft); else startEstimateFor(c); window.scrollTo(0, 0); } })
+      ]),
+      src ? h("p", { class: "small", text: "Starts from exactly what they bought, priced at your current reinstall rates." }) : null
     ]));
 
     // delete
@@ -1442,7 +1608,8 @@
   // ====================== BACKUP ======================
   function renderBackup() {
     var n = DB.customers.length;
-    $("b_summary").textContent = n + " customers saved on this device. " + (DB.lastExport ? "Last backup " + DB.lastExport + "." : "No backup yet.");
+    $("b_summary").textContent = n + " customers and " + DB.estimates.length + " estimates on this phone." + (DB.lastExport ? " Last backup file " + DB.lastExport + "." : "");
+    renderSync();
   }
   $("b_export").addEventListener("click", function () {
     var blob = new Blob([JSON.stringify(DB, null, 1)], { type: "application/json" });
@@ -1476,8 +1643,9 @@
     if (restoreData.templates) TEMPLATES.forEach(function (x) { if (typeof restoreData.templates[x.id] === "string") d.templates[x.id] = restoreData.templates[x.id]; });
     if (restoreData.vars) d.vars = { nearby: restoreData.vars.nearby || "", takedown: restoreData.vars.takedown || "" };
     d.cfg = restoreData.cfg || null; d.lastExport = restoreData.lastExport || null;
+    adoptExtras(d, restoreData);
     DB = d; saveDB(); restoreData = null; this.hidden = true; this.textContent = "Replace everything";
-    cfg = loadCfg(); buildLines(); syncRateInputs();
+    G = loadCfg(); openEstimateAtStart(); syncBizInputs();
     $("b_note").textContent = "Restored " + DB.customers.length + " customers."; renderBackup();
   });
 
@@ -1496,10 +1664,23 @@
     }
     return d;
   }
-  var cfg = loadCfg();
-  function saveCfg() {
-    DB.cfg = { customer: cfg.customer, address: cfg.address, baseRe: cfg.baseRe, reMine: cfg.reMine, reCust: cfg.reCust, minNew: cfg.minNew, pathSp: cfg.pathSp, cust: cfg.cust, rates: cfg.rates };
-    saveDB();
+  // G: your standing rates, used to start new estimates. cfg: the open estimate's own settings.
+  var G = loadCfg();
+  var RATE_KEYS = ["baseRe", "reMine", "reCust", "minNew", "pathSp"];
+  function freshCfg() {
+    var c = defaultCfg();
+    RATE_KEYS.forEach(function (k) { c[k] = G[k]; });
+    c.rates = clone(G.rates); c.cust = false; c.customer = ""; c.address = "";
+    return c;
+  }
+  var cfg = freshCfg();
+  // rateChanged: copy this estimate's rates back to your standing rates too
+  function saveCfg(rateChanged) {
+    if (rateChanged) {
+      RATE_KEYS.forEach(function (k) { G[k] = cfg[k]; }); G.rates = clone(cfg.rates);
+      DB.cfg = { baseRe: G.baseRe, reMine: G.reMine, reCust: G.reCust, minNew: G.minNew, pathSp: G.pathSp, rates: G.rates, customer: "", address: "", cust: false };
+    }
+    estChanged();
   }
   var money = moneyS;
 
@@ -1756,15 +1937,6 @@
     });
     return c.unit === "ft" ? Math.round(m) : m;
   }
-  function qtysNow() {
-    var q = {};
-    CATS.forEach(function (c) {
-      var v = Math.max(0, measured(c) + (cfg.adjust[c.id] || 0));
-      if (c.packs) v = Math.ceil(v / c.packs) * c.packs;
-      q[c.id] = v;
-    });
-    return q;
-  }
 
   var lineRefs = {};
   function buildLines() {
@@ -1778,7 +1950,7 @@
         input.id = id; return h("div", null, [h("label", { for: id, text: label }), input]);
       }
       function ni(step, val) { return h("input", { type: "number", inputmode: "decimal", step: step, value: String(val) }); }
-      var adj = ni(c.packs ? String(c.packs) : "1", cfg.adjust[c.id] || 0), rn = ni("0.25", cfg.rates[c.id].n);
+      var adj = ni(c.packs ? String(c.packs) : "1", curView().adjust[c.id] || 0), rn = ni("0.25", cfg.rates[c.id].n);
       var grid = h("div", { class: "lgrid" });
       var uw = c.unit === "ft" ? "ft" : (c.unit === "each" ? c.one : "strand");
       grid.appendChild(fld("Add or subtract (" + (c.unit === "ft" ? "ft" : (c.unit === "each" ? c.many : "strands")) + ")", adj));
@@ -1787,13 +1959,14 @@
       if (c.roof) { roofNote = h("div", { class: "roofre" }); grid.appendChild(roofNote); }
       else { rr = ni("0.25", cfg.rates[c.id].r); grid.appendChild(fld("Reinstall $ per " + uw, rr)); }
       var box = h("div", { class: "lcalc" });
-      function cell(cls, label) { var st = h("strong"); box.appendChild(h("div", { class: cls || null }, [h("span", { text: label }), st])); return st; }
-      var oQty = cell("", "Quantity"), oNew = cell("p", "New install"), oRe = cell("", "Reinstall");
+      var lastW = null;
+      function cell(cls, label) { var st = h("strong"); lastW = h("div", { class: cls || null }, [h("span", { text: label }), st]); box.appendChild(lastW); return st; }
+      var oQty = cell("", "Quantity"), oNew = cell("p", "New install"), oNewW = lastW, oRe = cell("", "Reinstall"), oReW = lastW;
       art.appendChild(grid); art.appendChild(box); $("lines").appendChild(art);
-      lineRefs[c.id] = { art: art, meas: meas, oQty: oQty, oNew: oNew, oRe: oRe, roofNote: roofNote, adj: adj, rn: rn, rr: rr };
-      adj.addEventListener("input", function () { cfg.adjust[c.id] = num(adj.value); update(); });
-      rn.addEventListener("input", function () { cfg.rates[c.id].n = num(rn.value); saveCfg(); update(); });
-      if (rr) rr.addEventListener("input", function () { cfg.rates[c.id].r = num(rr.value); saveCfg(); update(); });
+      lineRefs[c.id] = { art: art, meas: meas, oQty: oQty, oNew: oNew, oNewW: oNewW, oRe: oRe, oReW: oReW, roofNote: roofNote, adj: adj, rn: rn, rr: rr };
+      adj.addEventListener("input", function () { curView().adjust[c.id] = num(adj.value); update(); });
+      rn.addEventListener("input", function () { cfg.rates[c.id].n = num(rn.value); saveCfg(true); update(); });
+      if (rr) rr.addEventListener("input", function () { cfg.rates[c.id].r = num(rr.value); saveCfg(true); update(); });
     });
   }
   function qtyLabel(c, q) { return c.unit === "ft" ? q + " ft" : c.unit === "each" ? q + " " + (q === 1 ? c.one : c.many) : q + (q === 1 ? " strand" : " strands"); }
@@ -1810,8 +1983,166 @@
     return p || null;
   }
 
+  // ====================== ESTIMATES ======================
+  var EST_ST = [{ id: "draft", name: "Draft" }, { id: "sent", name: "Sent" }, { id: "accepted", name: "Accepted" }, { id: "declined", name: "Declined" }];
+  function estStName(e) { if (e.paid) return "Paid"; var x = EST_ST.filter(function (s) { return s.id === e.status; })[0]; return x ? x.name : "Draft"; }
+  function estStClass(e) { return e.paid ? "paid" : (e.status || "draft"); }
+  function pad4(n) { return "#" + String(n).padStart(4, "0"); }
+  function newView(label) { return { id: uid(), label: label || "", photo: null, W: 0, H: 0, pxPerFt: null, strands: [], adjust: {}, meas: {}, opt: false, kind: "new" }; }
+  function blankEst() { return { id: uid(), no: null, custId: null, created: today(), status: "draft", picks: {}, cfg: freshCfg(), views: [newView("Front of house")], av: 0, paid: null, tax: null }; }
+  function shapeEst(e) {
+    var d = defaultCfg(), c = e.cfg || {};
+    Object.keys(d).forEach(function (k) { if (c[k] === undefined || c[k] === null) c[k] = d[k]; });
+    CATS.forEach(function (k) { if (!c.rates[k.id]) c.rates[k.id] = clone(d.rates[k.id]); });
+    e.cfg = c; if (!e.picks) e.picks = {}; if (!e.status) e.status = "draft";
+    if (!Array.isArray(e.views) || !e.views.length) e.views = [newView("Front of house")];
+    e.views.forEach(function (v) { if (!v.strands) v.strands = []; if (!v.adjust) v.adjust = {}; if (!v.meas) v.meas = {}; if (!v.kind) v.kind = "new"; });
+    if (!(e.av >= 0 && e.av < e.views.length)) e.av = 0;
+    return e;
+  }
+  var E = blankEst();
+  function estById(id) { return DB.estimates.filter(function (e) { return e.id === id; })[0]; }
+  function curView() { return E.views[E.av] || E.views[0]; }
+  function viewName(est, v) { return (v.label && v.label.trim()) || "Photo " + (est.views.indexOf(v) + 1); }
+  function estCustName(e) { var c = e.custId ? custById(e.custId) : null; return c ? displayName(c) : ((e.cfg && e.cfg.customer) || "No name"); }
+
+  function qtysFor(v) {
+    var q = {};
+    CATS.forEach(function (c) {
+      var val = Math.max(0, (v.meas[c.id] || 0) + (v.adjust[c.id] || 0));
+      if (c.packs) val = Math.ceil(val / c.packs) * c.packs;
+      q[c.id] = val;
+    });
+    return q;
+  }
+  function viewQuote(est, v) { return calcQuote(est.cfg, qtysFor(v)); }
+  function viewPrice(est, v) { var Q = viewQuote(est, v), t = 0; Q.rows.forEach(function (r) { t += v.kind === "re" ? r.re : r.nw; }); return t; }
+  function allV() { return true; }
+  function isInc(v) { return !v.opt; }
+  function isPicked(est) { return function (v) { return !v.opt || !!est.picks[v.id]; }; }
+  function finalPick(est) { return est.status === "accepted" ? isPicked(est) : isInc; }
+  function estSum(est, pick) {
+    var newSum = 0, reSum = 0, anyNew = false, anyRe = false, nextRe = 0;
+    est.views.forEach(function (v) {
+      if (!pick(v)) return;
+      var Q = viewQuote(est, v); if (!Q.any) return;
+      var nw = 0, re = 0; Q.rows.forEach(function (r) { nw += r.nw; re += r.re; });
+      if (v.kind === "re") { reSum += re; anyRe = true; } else { newSum += nw; anyNew = true; }
+      nextRe += re;
+    });
+    var cf = est.cfg, minNew = Number(cf.minNew) || 0, base = Number(cf.baseRe) || 0;
+    var newTot = anyNew ? Math.max(newSum, minNew) : 0, reTot = anyRe ? reSum + base : 0;
+    return { any: anyNew || anyRe, anyNew: anyNew, anyRe: anyRe, newSum: newSum, newTot: newTot, minUp: newTot - newSum,
+      reTot: reTot, base: anyRe ? base : 0, total: newTot + reTot, nextRe: (anyNew || anyRe) ? nextRe + base : 0 };
+  }
+  function addOn(est, v) { return estSum(est, function (x) { return isInc(x) || x === v; }).total - estSum(est, isInc).total; }
+  function estLines(est, pick) {
+    var agg = {}, order = [];
+    est.views.forEach(function (v) {
+      if (!pick(v)) return;
+      viewQuote(est, v).rows.forEach(function (r) {
+        if (r.q <= 0) return;
+        var re = v.kind === "re", key = (re ? "re:" : "n:") + r.c.id;
+        if (!agg[key]) { agg[key] = { name: (re ? "Reinstall, " : "") + r.c.name, c: r.c, q: 0, each: re ? r.rr : r.rate, total: 0 }; order.push(key); }
+        agg[key].q += r.q; agg[key].total += re ? r.re : r.nw;
+      });
+    });
+    var out = order.map(function (k) { return agg[k]; }), t = estSum(est, pick);
+    if (t.base > 0) out.push({ name: "Reinstall service charge", q: 1, each: t.base, total: t.base });
+    if (t.minUp > 0.004) out.push({ name: "Minimum job adjustment", q: 1, each: t.minUp, total: t.minUp });
+    return out;
+  }
+  function lineQty(l) { return l.c ? qtyLabel(l.c, l.q) : "1"; }
+  function r2(n) { return Math.round(n * 100) / 100; }
+
+  // sales tax, Washington combined rates Oct 1 - Dec 31, 2026
+  var TAX_AS_OF = "Oct to Dec 2026";
+  var TAXES = [["west richland", 8.7], ["benton city", 8.7], ["kennewick", 8.8], ["richland", 8.8], ["pasco", 8.9], ["prosser", 8.7],
+    ["college place", 9.0], ["walla walla", 9.1], ["waitsburg", 8.5], ["prescott", 8.3], ["connell", 8.3]];
+  function guessTax(addr) {
+    var a = " " + String(addr || "").toLowerCase().replace(/[^a-z ]+/g, " ").replace(/\s+/g, " ") + " ";
+    for (var i = 0; i < TAXES.length; i++) if (a.indexOf(" " + TAXES[i][0] + " ") >= 0) return TAXES[i];
+    return null;
+  }
+  function taxRate(est) { if (est.tax != null && isFinite(est.tax)) return Number(est.tax); var g = guessTax(est.cfg.address); return g ? g[1] : 0; }
+  function invoiceAmts(est) {
+    var sub = r2(estSum(est, finalPick(est)).total), rate = taxRate(est), tax = r2(sub * rate / 100);
+    return { sub: sub, rate: rate, tax: tax, total: r2(sub + tax) };
+  }
+
+  // ---------- messages ----------
+  function colorTail(lines) {
+    var hasMini = lines.some(function (l) { return l.c && l.c.unit === "strand"; }), hasPath = lines.some(function (l) { return l.c && l.c.kind === "path"; });
+    var t = "Colors and bulb pattern are completely up to you." + (hasMini ? " For the pillars, trees, and bushes, I'd suggest a pattern that works with solid-color mini sets, since those can't be changed the way bulbs can." : "");
+    if (hasPath) t += " The starburst pathway lights come in warm white or cool white.";
+    return t;
+  }
+  function viewItems(est, v) { return viewQuote(est, v).rows.filter(function (r) { return r.q > 0; }).map(function (r) { return { c: r.c, q: r.q }; }); }
+  function estimateText(est) {
+    var who = firstWord(est.cfg.customer), inc = estSum(est, isInc), all = estSum(est, allV);
+    var newOnly = inc.anyNew && !inc.anyRe, reOnly = inc.anyRe && !inc.anyNew;
+    var t = ["Hi" + (who ? " " + who : "") + ", here's your Christmas light " + (reOnly ? "reinstall price" : "estimate") + (est.no ? " (" + pad4(est.no) + ")" : "") + ". I attached a picture so you can see how it would look.", ""];
+    var shown = est.views.filter(function (v) { return viewQuote(est, v).any; });
+    shown.forEach(function (v) {
+      var price = v.opt ? "+" + money(addOn(est, v)) : money(viewPrice(est, v));
+      t.push((v.opt ? "Optional, " + viewName(est, v).toLowerCase() : viewName(est, v)) + ": " + price);
+      viewItems(est, v).forEach(function (x) { t.push("  • " + x.c.name + ", " + itemNoun(x.c, x.q)); });
+    });
+    if (!shown.length) t.push("(Nothing added yet.)");
+    t.push("");
+    if (inc.base > 0) t.push("Includes the " + money(inc.base) + " reinstall service charge.");
+    if (inc.minUp > 0.004) t.push("Includes our " + money(Number(est.cfg.minNew)) + " minimum for new installs.");
+    t.push("Total: " + money(inc.total));
+    if (all.total > inc.total + 0.004) t.push("With everything: " + money(all.total));
+    if (DB.biz.taxNote && all.anyNew) t.push("Sales tax added on the final invoice.");
+    var lines = []; shown.forEach(function (v) { lines = lines.concat(viewItems(est, v)); });
+    t.push("", colorTail(lines));
+    if (all.anyNew) t.push("", INCL, "", "Next year's reinstall is " + money(inc.nextRe) + ", since the lights are yours.");
+    return t.join("\n");
+  }
+  function squareMessage(est) {
+    var who = firstWord(est.cfg.customer), lines = [];
+    est.views.forEach(function (v) { if (isInc(v)) lines = lines.concat(viewItems(est, v)); });
+    var m = ["Hi" + (who ? " " + who : "") + ", thanks for having us out. Here's the plan for your Christmas lights:", ""];
+    lines.forEach(function (x) { m.push("• " + x.c.name + ": " + itemNoun(x.c, x.q)); });
+    if (!lines.length) m.push("(Nothing added yet.)");
+    m.push("", colorTail(lines), "", INCL);
+    return m.join("\n");
+  }
+  function invoiceText(est) {
+    var who = firstWord(est.cfg.customer), A = invoiceAmts(est), ls = estLines(est, finalPick(est));
+    var t = ["Hi" + (who ? " " + who : "") + ", here's your invoice" + (est.no ? " (" + pad4(est.no) + ")" : "") + " for Christmas lights. Thank you!", ""];
+    ls.forEach(function (l) { t.push(l.name + (l.c ? " (" + lineQty(l) + ")" : "") + ": " + money(l.total)); });
+    t.push("", "Subtotal: " + money(A.sub));
+    if (A.rate > 0) t.push("Sales tax (" + A.rate + "%): " + money(A.tax));
+    t.push("Total due: " + money(A.total));
+    if (DB.biz.pay.trim()) t.push("", "You can pay by " + DB.biz.pay.trim() + ".");
+    return t.join("\n");
+  }
+
+  // ---------- saving the open estimate ----------
+  function stashView() { var v = curView(); if (!v || S.vid !== v.id) return; v.strands = S.strands; v.pxPerFt = S.pxPerFt; if (S.W > 10) { v.W = S.W; v.H = S.H; } }
+  function estHasContent() {
+    return !!(E.custId || (E.cfg.customer || "").trim() || E.views.some(function (v) { return v.photo || v.strands.length; }) || estSum(E, allV).any);
+  }
+  var estTimer = null;
+  function flushEst() { if (estTimer) { clearTimeout(estTimer); estTimer = null; stashView(); saveDB(); } }
+  function estChanged() {
+    stashView();
+    if (!E.no) {
+      if (!estHasContent()) return;
+      E.no = DB.nextNo; DB.nextNo = E.no + 1; DB.estimates.push(E); DB.curEst = E.id;
+      renderEstHead(); syncBizInputs();
+    }
+    clearTimeout(estTimer); estTimer = setTimeout(function () { estTimer = null; stashView(); saveDB(); }, 500);
+  }
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") { flushEst(); syncNow(true); } });
+  window.addEventListener("pagehide", flushEst);
+
   function update() {
-    var qs = qtysNow(), Q = calcQuote(cfg, qs);
+    var v = curView();
+    if (S.vid === v.id) CATS.forEach(function (c) { v.meas[c.id] = measured(c); });
+    var Q = viewQuote(E, v);
     Q.rows.forEach(function (r) {
       var ref = lineRefs[r.c.id]; if (!ref) return;
       var m = measured(r.c);
@@ -1819,45 +2150,226 @@
       ref.oQty.textContent = qtyLabel(r.c, r.q);
       ref.oNew.textContent = money(r.nw); ref.oRe.textContent = money(r.re);
       ref.art.classList.toggle("off", r.q === 0);
+      ref.oNewW.classList.toggle("p", v.kind !== "re"); ref.oReW.classList.toggle("p", v.kind === "re");
       if (ref.roofNote) ref.roofNote.textContent = "Reinstall " + money(r.rr) + " per ft, set in Your rates";
     });
-    $("bigNew").textContent = money(Q.newTotal); $("bigRe").textContent = money(Q.reTotal);
+    var pick = finalPick(E), fin = estSum(E, pick), inc = estSum(E, isInc), all = estSum(E, allV);
+    $("bigNew").textContent = money(fin.total); $("bigRe").textContent = money(fin.nextRe);
+    $("newLabel").textContent = E.status === "accepted" ? "Accepted total" : (fin.anyRe && !fin.anyNew ? "Reinstall this year" : "Estimate total");
     $("reLabel").textContent = cfg.cust ? "Reinstall next year, customer's lights" : "Reinstall next year, my lights";
-    $("minNote").textContent = Q.any && Q.raw < cfg.minNew ? "Brought up to your minimum new job." : "";
-    $("baseNote").textContent = "Reinstall includes the " + money(cfg.baseRe) + " base charge.";
+    var opts = E.views.filter(function (x) { return x.opt && viewQuote(E, x).any; });
+    $("addonNote").textContent = opts.length && E.status !== "accepted"
+      ? opts.map(function (x) { return viewName(E, x) + " +" + money(addOn(E, x)); }).join(" · ") + " · Everything " + money(all.total) : "";
+    $("minNote").textContent = inc.minUp > 0.004 ? "Brought up to your minimum new job." : "";
+    $("baseNote").textContent = "Reinstall includes the " + money(cfg.baseRe) + " base charge once per house.";
 
-    var body = $("sqBody"); body.textContent = "";
-    Q.rows.forEach(function (r) {
-      if (r.q <= 0) return;
+    // line items
+    var ls = estLines(E, pick), body = $("sqBody"); body.textContent = "";
+    ls.forEach(function (l) {
       var tr = h("tr");
-      [r.c.name, qtyLabel(r.c, r.q), money(r.rate), money(r.nw)].forEach(function (t, i) { tr.appendChild(h("td", { class: i > 0 ? "n" : null, text: t })); });
+      [l.name, lineQty(l), money(l.each), money(l.total)].forEach(function (t, i) { tr.appendChild(h("td", { class: i > 0 ? "n" : null, text: t })); });
       body.appendChild(tr);
     });
     var foot = $("sqFoot"); foot.textContent = "";
-    if (Q.any) {
-      var tr = h("tr"); ["Total", "", "", money(Q.newTotal)].forEach(function (t, i) { tr.appendChild(h("td", { class: i > 0 ? "n" : null, text: t })); }); foot.appendChild(tr);
-    } else body.appendChild(h("tr", null, [h("td", { colspan: "4", text: "Draw or add something to see line items." })]));
+    if (ls.length) { var tr = h("tr"); ["Total before tax", "", "", money(fin.total)].forEach(function (t, i) { tr.appendChild(h("td", { class: i > 0 ? "n" : null, text: t })); }); foot.appendChild(tr); }
+    else body.appendChild(h("tr", null, [h("td", { colspan: "4", text: "Draw or add something to see line items." })]));
+    $("sqHead").textContent = E.status === "accepted" ? "Line items they accepted" : "Line items";
 
-    var who = firstName(), lines = Q.rows.filter(function (r) { return r.q > 0; });
-    var hasMini = lines.some(function (r) { return r.c.unit === "strand"; });
-    var tail = "Colors and bulb pattern are completely up to you." + (hasMini ? " For the pillars, trees, and bushes, I'd suggest a pattern that works with solid-color mini sets, since those can't be changed the way bulbs can." : "");
-    var est = ["Hi" + (who ? " " + who : "") + ", thanks for having us out. Here's the plan for your Christmas lights:", ""];
-    lines.forEach(function (r) { est.push("• " + r.c.name + ": " + itemNoun(r.c, r.q)); });
-    if (!lines.length) est.push("(Nothing added yet.)");
-    var hasPath = lines.some(function (r) { return r.c.kind === "path"; });
-    if (hasPath) tail += " The starburst pathway lights come in warm white or cool white.";
-    est.push("", tail, "", INCL);
-    $("estMsg").value = est.join("\n");
-    var t = ["Hi" + (who ? " " + who : "") + ", here's your Christmas light plan. I attached a mockup so you can see how it would look.", ""];
-    lines.forEach(function (r) { t.push(r.c.name + " (" + itemNoun(r.c, r.q) + "): " + money(r.nw)); });
-    if (!lines.length) t.push("(Nothing added yet.)");
-    t.push("", "Total: " + money(Q.newTotal), "Each piece is priced separately, so we can start with some and add the rest later.", "", tail, "", INCL, "", "Next year's reinstall is " + money(Q.reTotal) + ", since the lights are yours.");
-    $("txtMsg").value = t.join("\n");
-
+    $("estMsg").value = squareMessage(E);
+    $("txtMsg").value = estimateText(E);
     var qp = quotePerson(), sms = $("q_sms");
     if (qp) { sms.href = smsHref(qp.phone, $("txtMsg").value); sms.removeAttribute("aria-disabled"); sms.textContent = "Text " + (firstWord(qp.name) || "customer"); }
     else { sms.href = "#"; sms.setAttribute("aria-disabled", "true"); sms.textContent = "Open in Messages"; }
-    $("q_save").disabled = !(quoteCust && Q.any);
+    $("e_pic").disabled = !E.views.some(function (x) { return x.photo || viewQuote(E, x).any; });
+    $("e_dup").disabled = !E.no;
+    renderViews(); renderAfter();
+    estChanged();
+  }
+
+  // ---------- header, views, after-they-answer ----------
+  function renderEstHead() {
+    $("e_no").textContent = E.no ? "Estimate " + pad4(E.no) : "New estimate";
+    var st = $("e_st"); st.hidden = !E.no; st.textContent = estStName(E);
+  }
+  function renderViews() {
+    var host = $("views"); host.textContent = "";
+    E.views.forEach(function (v, i) {
+      var Q = viewQuote(E, v);
+      var sub = !Q.any ? (v.photo ? "no lights yet" : "no photo yet") : (v.opt ? "optional +" + money(addOn(E, v)) : money(viewPrice(E, v))) + (v.kind === "re" ? " reinstall" : "");
+      host.appendChild(h("button", { type: "button", class: "vchip", "aria-pressed": String(i === E.av), onclick: function () { if (i !== E.av) activateView(i); } },
+        [h("div", { text: viewName(E, v) }), h("span", { text: sub })]));
+    });
+    host.appendChild(h("button", { type: "button", class: "vchip add", text: "+ Add photo", onclick: function () {
+      commitDraft(); stashView(); E.views.push(newView("")); activateView(E.views.length - 1);
+      try { $("stage").scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {}
+    } }));
+    var v = curView();
+    if (document.activeElement !== $("v_label")) $("v_label").value = v.label || "";
+    $("v_label").placeholder = "Photo " + (E.av + 1);
+    document.querySelectorAll("#v_kind button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.v === v.kind)); });
+    document.querySelectorAll("#v_opt button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.v === (v.opt ? "opt" : "inc"))); });
+    $("v_opt").parentNode.hidden = E.views.length < 2 && !v.opt;
+    $("v_remove").hidden = E.views.length < 2;
+  }
+  $("v_label").addEventListener("input", function () { curView().label = this.value; update(); });
+  document.querySelectorAll("#v_kind button").forEach(function (b) { b.addEventListener("click", function () { curView().kind = b.dataset.v; update(); }); });
+  document.querySelectorAll("#v_opt button").forEach(function (b) { b.addEventListener("click", function () { curView().opt = b.dataset.v === "opt"; update(); }); });
+  var vRemArmed = false;
+  $("v_remove").addEventListener("click", function () {
+    var btn = this;
+    if (E.views.length < 2) return;
+    if (!vRemArmed) { vRemArmed = true; btn.textContent = "Tap again to remove"; setTimeout(function () { vRemArmed = false; btn.textContent = "Remove this photo"; }, 4000); return; }
+    vRemArmed = false; btn.textContent = "Remove this photo";
+    var v = curView(); delete E.picks[v.id];
+    E.views.splice(E.av, 1); E.av = Math.max(0, E.av - 1);
+    activateView(E.av, true);
+  });
+
+  function activateView(i, skipStash) {
+    commitDraft(); if (!skipStash) stashView();
+    E.av = i; var v = curView();
+    S.strands = v.strands; S.pxPerFt = v.pxPerFt; S.W = v.W || 0; S.H = v.H || 0; S.vid = v.id;
+    S.draft = []; S.scaleDraft = []; S.sel = null; S.scaling = false; S.zoom = 1; S.base = null;
+    cv.width = 10; cv.height = 10; cv.style.width = ""; cv.style.height = "";
+    $("empty").classList.toggle("hidden", !!v.photo);
+    buildLines();
+    if (v.photo) {
+      var want = v.id;
+      $("hint").textContent = "Loading photo...";
+      photoCanvas(v.photo).then(function (c) {
+        if (curView().id !== want) return;
+        if (!c) { $("empty").classList.remove("hidden"); $("hint").textContent = "This photo isn't on this phone yet. Choose it again, or turn on Automatic backup to bring it over."; return; }
+        S.base = c; S.W = v.W || c.width; S.H = v.H || c.height; cv.width = S.W; cv.height = S.H; applyZoom(); refreshUI();
+      }, function () { if (curView().id === want) { $("empty").classList.remove("hidden"); $("hint").textContent = "This photo couldn't be opened. Choose it again."; } });
+    }
+    refreshUI();
+  }
+
+  function renderAfter() {
+    $("e_status").value = E.status || "draft";
+    var acc = E.status === "accepted";
+    var opts = E.views.filter(function (v) { return v.opt && viewQuote(E, v).any; });
+    $("e_pickWrap").hidden = !(acc && opts.length);
+    var ph = $("e_picks"); ph.textContent = "";
+    opts.forEach(function (v) {
+      var box = h("input", { type: "checkbox" }); box.checked = !!E.picks[v.id];
+      box.addEventListener("change", function () { if (box.checked) E.picks[v.id] = true; else delete E.picks[v.id]; update(); });
+      ph.appendChild(h("label", { class: "pick" }, [box, h("span", { class: "grow", text: viewName(E, v) }), h("span", { text: "+" + money(addOn(E, v)) })]));
+    });
+    $("e_invWrap").hidden = !acc && !E.paid;
+    var g = guessTax(cfg.address);
+    if (document.activeElement !== $("e_tax")) $("e_tax").value = E.tax != null ? E.tax : (g ? g[1] : "");
+    $("e_taxNote").textContent = E.tax != null ? "Your rate for this invoice." : (g ? "Combined rate for " + g[0].replace(/\b\w/g, function (m) { return m.toUpperCase(); }) + ", " + TAX_AS_OF + "." : "Couldn't tell the city from the address. Look it up and type it in.");
+    var A = invoiceAmts(E), qp = quotePerson(), inv = $("e_invSms");
+    if (qp && A.sub > 0) { inv.href = smsHref(qp.phone, invoiceText(E)); inv.removeAttribute("aria-disabled"); } else { inv.href = "#"; inv.setAttribute("aria-disabled", "true"); }
+    if (document.activeElement !== $("e_payAmt") && !E.paid) $("e_payAmt").value = A.total ? A.total.toFixed(2) : "";
+    $("e_paid").hidden = !!E.paid; $("e_unpaid").hidden = !E.paid;
+    $("e_paidNote").textContent = E.paid ? "Paid " + money(E.paid.amount) + " by " + E.paid.method.toLowerCase() + " on " + E.paid.date + ". It's in the customer's history." : "Total due " + money(A.total) + (A.rate ? " including " + money(A.tax) + " sales tax." : ".");
+    renderEstHead();
+  }
+  $("e_status").addEventListener("change", function () {
+    E.status = this.value;
+    var c = E.custId ? custById(E.custId) : null;
+    if (c && E.status === "accepted" && ["none", "asked"].indexOf(c.status) >= 0) { c.status = "booked"; saveDB(); }
+    if (c && E.status === "sent" && c.status === "none") { c.status = "asked"; saveDB(); }
+    update();
+  });
+  $("e_tax").addEventListener("input", function () { var n = parseFloat(this.value); E.tax = isFinite(n) ? n : null; update(); });
+  $("e_paid").addEventListener("click", function () {
+    var amt = parseFloat($("e_payAmt").value); if (!isFinite(amt)) amt = invoiceAmts(E).total;
+    var c = E.custId ? custById(E.custId) : null, hid = uid();
+    E.paid = { date: today(), method: $("e_payM").value, amount: r2(amt), hid: hid };
+    if (E.status !== "accepted") E.status = "accepted";
+    if (c) {
+      c.history.push({ id: hid, season: SEASON, charged: r2(amt), note: pad4(E.no) + " paid by " + E.paid.method.toLowerCase(), est: E.id });
+      c.history.sort(function (a, b) { return a.season - b.season; });
+      checksOf(c).paid = today();
+      if (["none", "asked"].indexOf(c.status) >= 0) c.status = "booked";
+    }
+    saveDB(); update();
+    if (!c) $("e_paidNote").textContent += " Pick the customer at the top so it lands in their history.";
+  });
+  $("e_unpaid").addEventListener("click", function () {
+    var c = E.custId ? custById(E.custId) : null;
+    if (c && E.paid) { c.history = c.history.filter(function (x) { return x.id !== E.paid.hid; }); if (c.checks && c.checks[SEASON]) delete c.checks[SEASON].paid; }
+    E.paid = null; saveDB(); update();
+  });
+  $("e_copyLines").addEventListener("click", function () {
+    var ls = estLines(E, finalPick(E));
+    copyText(ls.map(function (l) { return l.name + "\t" + lineQty(l) + "\t" + money(l.each) + "\t" + money(l.total); }).join("\n"), $("e_invNote"), "Line items copied.");
+  });
+  $("e_invCopy").addEventListener("click", function () { copyText(invoiceText(E), $("e_invNote"), "Invoice text copied."); });
+  $("q_sms").addEventListener("click", function () {
+    if (this.getAttribute("aria-disabled")) return;
+    if (E.status === "draft") { E.status = "sent"; var c = E.custId ? custById(E.custId) : null; if (c && c.status === "none") c.status = "asked"; saveDB(); setTimeout(update, 300); }
+  });
+
+  // ---------- open, new, duplicate, list ----------
+  function openEstimate(est) {
+    commitDraft(); stashView(); flushEst(); S.vid = null;
+    E = shapeEst(est); cfg = E.cfg;
+    DB.curEst = E.no ? E.id : null;
+    quoteCust = E.custId && custById(E.custId) ? E.custId : null;
+    $("e_listCard").hidden = true;
+    fillQuoteSelect(); syncRateInputs(); activateView(E.av, true); renderEstHead();
+    if (E.no) saveDB();
+  }
+  function openEstimateAtStart() {
+    var e = DB.curEst ? estById(DB.curEst) : null;
+    E = e ? shapeEst(e) : blankEst(); cfg = E.cfg;
+    quoteCust = E.custId && custById(E.custId) ? E.custId : null;
+    buildLines(); fillQuoteSelect(); syncRateInputs(); activateView(E.av, true); renderEstHead();
+  }
+  function startEstimateFor(c) {
+    var e = blankEst();
+    if (c) {
+      var p = c.people.filter(function (x) { return phoneE164(x.phone); })[0] || c.people[0];
+      e.custId = c.id; e.cfg.customer = p ? p.name : ""; e.cfg.address = c.address || "";
+    }
+    openEstimate(e);
+  }
+  function reinstallFrom(src, c) {
+    var e = blankEst(), pick = finalPick(src);
+    e.custId = src.custId; e.cfg.customer = src.cfg.customer; e.cfg.address = src.cfg.address;
+    if (c) { e.custId = c.id; if (c.address) e.cfg.address = c.address; }
+    var vs = src.views.filter(function (v) { return pick(v) && viewQuote(src, v).any; }).map(function (v) {
+      var n = clone(v); n.id = uid(); n.kind = "re"; n.opt = false; return n;
+    });
+    if (vs.length) e.views = vs;
+    var allRe = src.views.every(function (v) { return v.kind === "re"; });
+    e.cfg.cust = allRe ? !!src.cfg.cust : false;
+    e.from = src.no;
+    openEstimate(e);
+  }
+  $("e_new").addEventListener("click", function () { startEstimateFor(null); $("saveNote").textContent = ""; });
+  $("e_dup").addEventListener("click", function () {
+    if (!E.no) return;
+    stashView();
+    var d = clone(E); d.id = uid(); d.no = null; d.created = today(); d.status = "draft"; d.paid = null; d.picks = {}; d.from = E.no;
+    d.views.forEach(function (v) { v.id = uid(); });
+    var from = E.no; openEstimate(d); estChanged();
+    $("saveNote").textContent = "This is a copy of " + pad4(from) + ". Change anything without touching the original.";
+  });
+  $("e_all").addEventListener("click", function () { var c = $("e_listCard"); c.hidden = !c.hidden; if (!c.hidden) { renderEstList(); try { c.scrollIntoView({ block: "start" }); } catch (e) {} } });
+  $("e_listClose").addEventListener("click", function () { $("e_listCard").hidden = true; });
+  $("e_search").addEventListener("input", renderEstList);
+  function estRow(e, onOpen) {
+    var t = estSum(e, finalPick(e)).total;
+    return h("button", { type: "button", class: "estrow", onclick: onOpen }, [
+      h("span", { class: "eno", text: pad4(e.no) }),
+      h("div", { class: "grow" }, [h("div", { class: "cust-name", text: estCustName(e) }), h("div", { class: "cust-sub", text: e.created + (e.cfg.address ? " · " + e.cfg.address : "") })]),
+      h("div", { style: "text-align:right" }, [h("div", { class: "amt", text: money(t) }), h("span", { class: "pill " + estStClass(e), text: estStName(e) })])
+    ]);
+  }
+  function renderEstList() {
+    var host = $("e_list"); host.textContent = "";
+    var q = $("e_search").value.trim().toLowerCase().replace(/^#/, "");
+    var list = DB.estimates.filter(function (e) {
+      if (!q) return true;
+      return (String(e.no).padStart(4, "0") + " " + e.no + " " + estCustName(e) + " " + (e.cfg.address || "")).toLowerCase().indexOf(q) >= 0;
+    }).sort(function (a, b) { return b.no - a.no; });
+    if (!list.length) host.appendChild(h("p", { class: "small", text: DB.estimates.length ? "No matches." : "No estimates yet. Your first one starts when you pick a customer or add a photo." }));
+    list.forEach(function (e) { host.appendChild(estRow(e, function () { openEstimate(e); window.scrollTo(0, 0); })); });
   }
 
   function fillQuoteSelect() {
@@ -1868,14 +2380,14 @@
     renderQuoteHist();
   }
   function selectQuoteCustomer(id) {
-    quoteCust = id || null;
+    quoteCust = id || null; E.custId = quoteCust;
     var c = quoteCust ? custById(quoteCust) : null;
     if (c) {
       var p = c.people.filter(function (x) { return phoneE164(x.phone); })[0] || c.people[0];
       cfg.customer = p ? p.name : ""; if (c.address) cfg.address = c.address;
-      $("cust").value = cfg.customer; $("addr").value = cfg.address; setLinks(); saveCfg();
+      $("cust").value = cfg.customer; $("addr").value = cfg.address; setLinks();
     }
-    renderQuoteHist(); update();
+    saveCfg(); renderQuoteHist(); update();
   }
   $("q_sel").addEventListener("change", function () { selectQuoteCustomer(this.value); });
   function renderQuoteHist() {
@@ -1884,14 +2396,25 @@
     if (!c) return;
     $("q_next").textContent = c.next ? "Your note for next time: " + c.next : "No note for next time yet. Add one on the customer's page.";
     renderHistory($("q_hist"), c, renderQuoteHist);
+    var others = DB.estimates.filter(function (e) { return e.custId === c.id && e !== E; }).sort(function (a, b) { return b.no - a.no; });
+    if (others.length) {
+      $("q_hist").appendChild(h("div", { class: "msghead" }, [h("h3", { text: "Other estimates" })]));
+      others.forEach(function (e) { $("q_hist").appendChild(estRow(e, function () { openEstimate(e); window.scrollTo(0, 0); })); });
+    }
   }
-  $("q_save").addEventListener("click", function () {
-    var c = quoteCust ? custById(quoteCust) : null; if (!c) return;
-    var Q = calcQuote(cfg, qtysNow());
-    c.history.push({ id: uid(), season: SEASON, date: today(), newTotal: Q.newTotal, reTotal: Q.reTotal, cust: cfg.cust,
-      lines: Q.rows.filter(function (r) { return r.q > 0; }).map(function (r) { return { n: r.c.name, q: r.q, u: r.c.unit }; }), note: "" });
-    c.history.sort(function (a, b) { return a.season - b.season; });
-    saveDB(); renderQuoteHist(); $("saveNote").textContent = "Saved to " + displayName(c) + ".";
+
+  // ---------- business info ----------
+  function syncBizInputs() {
+    $("b_name").value = DB.biz.name; $("b_phone").value = DB.biz.phone; $("b_pay").value = DB.biz.pay;
+    $("b_next").value = DB.nextNo; $("b_taxNote").checked = !!DB.biz.taxNote;
+  }
+  ["name", "phone", "pay"].forEach(function (k) { $("b_" + k).addEventListener("input", function () { DB.biz[k] = this.value; saveDB(); update(); }); });
+  $("b_taxNote").addEventListener("change", function () { DB.biz.taxNote = this.checked; saveDB(); update(); });
+  $("b_next").addEventListener("change", function () {
+    var n = parseInt(this.value, 10), maxNo = 0;
+    DB.estimates.forEach(function (e) { if (e.no > maxNo) maxNo = e.no; });
+    if (!(n > maxNo)) { n = maxNo + 1; }
+    DB.nextNo = n; this.value = n; saveDB();
   });
 
   // settings inputs
@@ -1901,7 +2424,7 @@
     setCust(cfg.cust ? "cust" : "mine");
   }
   ["baseRe", "reMine", "reCust", "minNew", "pathSp"].forEach(function (id) {
-    $(id).addEventListener("input", function () { cfg[id] = num(this.value); saveCfg(); update(); if (id === "pathSp") { renderCats(); render(true); } });
+    $(id).addEventListener("input", function () { cfg[id] = num(this.value); saveCfg(true); update(); if (id === "pathSp") { renderCats(); render(true); } });
   });
   $("cust").addEventListener("input", function () { cfg.customer = this.value; saveCfg(); update(); });
   function setLinks() {
@@ -1909,7 +2432,7 @@
     $("mapLink").href = a ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(a) : "https://www.google.com/maps";
     $("earthLink").href = a ? "https://earth.google.com/web/search/" + encodeURIComponent(a) : "https://earth.google.com/web/";
   }
-  $("addr").addEventListener("input", function () { cfg.address = this.value; saveCfg(); setLinks(); });
+  $("addr").addEventListener("input", function () { cfg.address = this.value; saveCfg(); setLinks(); update(); });
   function setCust(v) {
     cfg.cust = v === "cust"; saveCfg();
     document.querySelectorAll("#custSeg button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.v === v)); });
@@ -1923,7 +2446,7 @@
     resetArmed = false; btn.textContent = "Reset all rates";
     var d = defaultCfg();
     cfg.baseRe = d.baseRe; cfg.reMine = d.reMine; cfg.reCust = d.reCust; cfg.minNew = d.minNew; cfg.pathSp = d.pathSp; cfg.rates = d.rates;
-    saveCfg(); buildLines(); syncRateInputs(); update();
+    saveCfg(true); buildLines(); syncRateInputs(); update();
     $("resetNote").textContent = "Rates are back to the starting values.";
   });
 
@@ -2181,17 +2704,74 @@
   $("zoomOut").addEventListener("click", function () { S.zoom = Math.max(1, S.zoom - 0.5); applyZoom(); });
   window.addEventListener("resize", applyZoom);
 
+  // ---------- photos, kept in the phone's larger storage (IndexedDB) ----------
+  var PH = { db: null, cache: {} };
+  function idb() {
+    return new Promise(function (res, rej) {
+      if (PH.db) return res(PH.db);
+      if (!window.indexedDB) return rej(new Error("no storage"));
+      var r = indexedDB.open("tcslights", 2);
+      r.onupgradeneeded = function () {
+        if (!r.result.objectStoreNames.contains("photos")) r.result.createObjectStore("photos");
+        if (!r.result.objectStoreNames.contains("meta")) r.result.createObjectStore("meta");
+      };
+      r.onsuccess = function () { PH.db = r.result; res(PH.db); };
+      r.onerror = function () { rej(r.error); };
+    });
+  }
+  function photoPut(id, blob) {
+    return blob.arrayBuffer().then(function (buf) {
+      return idb().then(function (db) {
+        return new Promise(function (res, rej) {
+          var t = db.transaction("photos", "readwrite"); t.objectStore("photos").put({ type: blob.type || "image/jpeg", buf: buf }, id);
+          t.oncomplete = function () { res(); }; t.onerror = function () { rej(t.error); }; t.onabort = function () { rej(t.error); };
+        });
+      });
+    });
+  }
+  function photoBlob(id) {
+    return idb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var r = db.transaction("photos").objectStore("photos").get(id);
+        r.onsuccess = function () { var v = r.result; res(v && v.buf ? new Blob([v.buf], { type: v.type }) : null); };
+        r.onerror = function () { rej(r.error); };
+      });
+    });
+  }
+  function blobToCanvas(blob) {
+    return new Promise(function (res, rej) {
+      var url = URL.createObjectURL(blob), img = new Image();
+      img.onload = function () { var c = document.createElement("canvas"); c.width = img.naturalWidth; c.height = img.naturalHeight; c.getContext("2d").drawImage(img, 0, 0); URL.revokeObjectURL(url); res(c); };
+      img.onerror = function () { URL.revokeObjectURL(url); rej(new Error("bad image")); };
+      img.src = url;
+    });
+  }
+  function photoCanvas(id) {
+    if (PH.cache[id]) return Promise.resolve(PH.cache[id]);
+    return photoBlob(id).catch(function () { return null; })
+      .then(function (b) { return b || syncFetchPhoto(id); })
+      .then(function (b) { return b ? blobToCanvas(b) : null; })
+      .then(function (c) { if (c) PH.cache[id] = c; return c; });
+  }
+
   function loadFile(file) {
     if (!file) return;
     var url = URL.createObjectURL(file), img = new Image();
     img.onload = function () {
-      var max = 2000, sc = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
-      S.W = Math.round(img.naturalWidth * sc); S.H = Math.round(img.naturalHeight * sc);
-      var off = document.createElement("canvas"); off.width = S.W; off.height = S.H;
-      off.getContext("2d").drawImage(img, 0, 0, S.W, S.H);
-      S.base = off; cv.width = S.W; cv.height = S.H;
+      var max = 1600, sc = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      var W = Math.round(img.naturalWidth * sc), H = Math.round(img.naturalHeight * sc);
+      var off = document.createElement("canvas"); off.width = W; off.height = H;
+      off.getContext("2d").drawImage(img, 0, 0, W, H);
+      URL.revokeObjectURL(url);
+      var v = curView(), id = "p" + uid();
+      PH.cache[id] = off; v.photo = id;
+      S.W = W; S.H = H; S.base = off; cv.width = W; cv.height = H;
       S.strands = []; S.draft = []; S.scaleDraft = []; S.pxPerFt = null; S.zoom = 1; S.scaling = false; S.sel = null;
-      $("empty").classList.add("hidden"); URL.revokeObjectURL(url); applyZoom(); refreshUI();
+      $("empty").classList.add("hidden"); applyZoom(); refreshUI();
+      off.toBlob(function (blob) {
+        if (!blob) return;
+        photoPut(id, blob).then(function () { syncSoon(); }, function () { $("hint").textContent = "This phone wouldn't store the photo, so it will be gone if the app closes. Your drawing and prices still save."; });
+      }, "image/jpeg", 0.85);
     };
     img.onerror = function () { $("hint").textContent = "That file couldn't be opened as a photo. Try another one."; };
     img.src = url;
@@ -2211,7 +2791,7 @@
       var nm = (cfg.customer || "light").trim().replace(/[^\w\- ]+/g, "").replace(/\s+/g, "-").toLowerCase() || "light";
       function dialog() {
         var r = new FileReader();
-        r.onload = function () { $("dlgImg").src = r.result; var d = $("dlg"); if (d.showModal) d.showModal(); else d.setAttribute("open", ""); };
+        r.onload = function () { $("dlgHead").textContent = "Press and hold the image to save it"; $("dlgNote").textContent = ""; $("dlgShare").hidden = true; $("dlgImg").src = r.result; var d = $("dlg"); if (d.showModal) d.showModal(); else d.setAttribute("open", ""); };
         r.readAsDataURL(blob);
       }
       shareOrDownload(blob, nm + "-mockup.jpg", function (how) {
@@ -2219,15 +2799,363 @@
       }, dialog);
     }, "image/jpeg", 0.92);
   });
+  // ---------- estimate and invoice pictures ----------
+  function renderViewImage(est, v) {
+    if (!v.photo) return Promise.resolve(null);
+    return photoCanvas(v.photo).then(function (base) {
+      if (!base) return null;
+      var keep = { base: S.base, W: S.W, H: S.H, strands: S.strands, pxPerFt: S.pxPerFt, sel: S.sel, draft: S.draft, scaleDraft: S.scaleDraft }, keepCfg = cfg;
+      if (v === curView()) stashView();
+      cfg = est.cfg;
+      S.base = base; S.W = v.W || base.width; S.H = v.H || base.height; S.strands = v.strands; S.pxPerFt = v.pxPerFt; S.sel = null; S.draft = []; S.scaleDraft = [];
+      cv.width = S.W; cv.height = S.H; render(false);
+      var out = document.createElement("canvas"); out.width = S.W; out.height = S.H; out.getContext("2d").drawImage(cv, 0, 0);
+      cfg = keepCfg; Object.keys(keep).forEach(function (k) { S[k] = keep[k]; });
+      if (S.base) { cv.width = S.W; cv.height = S.H; render(true); } else { cv.width = 10; cv.height = 10; }
+      return out;
+    });
+  }
+  function wrapText(g, text, maxW) {
+    var words = String(text).split(/\s+/), lines = [], cur = "";
+    words.forEach(function (w) { var t = cur ? cur + " " + w : w; if (cur && g.measureText(t).width > maxW) { lines.push(cur); cur = w; } else cur = t; });
+    if (cur) lines.push(cur); return lines;
+  }
+  function buildPicture(est, mode) {
+    var inv = mode === "inv", W = 1200, P = 56, CW = W - P * 2;
+    var pick = inv ? finalPick(est) : allV;
+    var views = inv ? [] : est.views.filter(function (v) { return v.photo || viewQuote(est, v).any; });
+    return Promise.all(views.map(function (v) { return renderViewImage(est, v); })).then(function (imgs) {
+      var fonts = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+      return fonts.then(function () { return imgs; });
+    }).then(function (imgs) {
+      var ink = "#14241c", muted = "#5a6b61", pine = "#1f5a42", rule = "#d3dbd4";
+      var HF = "'Barlow Condensed', 'Arial Narrow', sans-serif", BF = "'Barlow', system-ui, sans-serif";
+      function pass(g) {
+        var y = 0;
+        function text(t, x, font, color, align) { if (g) { g.font = font; g.fillStyle = color; g.textAlign = align || "left"; g.fillText(t, x, y); } }
+        function para(t, font, color, lh) {
+          var m = g || document.createElement("canvas").getContext("2d"); m.font = font;
+          wrapText(m, t, CW).forEach(function (ln) { y += lh; text(ln, P, font, color); });
+        }
+        function row(left, right, font, color) { y += 40; text(left, P, font, color); text(right, W - P, font, color, "right"); }
+        function hr() { y += 18; if (g) { g.fillStyle = rule; g.fillRect(P, y, CW, 2); } y += 6; }
+        // header band
+        var bandH = 190;
+        if (g) {
+          g.fillStyle = "#173a2c"; g.fillRect(0, 0, W, bandH);
+          g.fillStyle = "#e0951c"; for (var bx = 11; bx < W; bx += 22) { g.beginPath(); g.arc(bx, bandH - 14, 4, 0, 6.2832); g.fill(); }
+        }
+        y = 70; text(DB.biz.name || "Christmas Lights", P, "600 30px " + BF, "#f6efe0");
+        y = 135; text(inv ? "Invoice" : "Christmas light estimate", P, "700 54px " + HF, "#f6efe0");
+        y = 70; text(est.no ? pad4(est.no) : "", W - P, "700 40px " + HF, "#f6efe0", "right");
+        y = 135; text(inv ? (est.paid ? "Paid " + est.paid.date : today()) : est.created, W - P, "500 28px " + BF, "#f6efe0", "right");
+        y = bandH + 20;
+        y += 34; text(inv ? "Bill to" : "Prepared for", P, "600 22px " + BF, muted);
+        y += 44; text(est.cfg.customer || estCustName(est), P, "600 40px " + HF, ink);
+        if (est.cfg.address) { y += 36; text(est.cfg.address, P, "500 26px " + BF, muted); }
+        y += 16;
+        if (!inv) {
+          views.forEach(function (v, i) {
+            var img = imgs[i], Q = viewQuote(est, v);
+            y += 24;
+            if (img) {
+              var sc = Math.min(CW / img.width, 820 / img.height), iw = img.width * sc, ih = img.height * sc;
+              if (g) { g.save(); g.beginPath(); if (g.roundRect) g.roundRect(P, y, iw, ih, 14); else g.rect(P, y, iw, ih); g.clip(); g.drawImage(img, P, y, iw, ih); g.restore(); }
+              y += ih;
+            }
+            y += 50;
+            text(viewName(est, v) + (v.opt ? " (optional)" : ""), P, "700 40px " + HF, ink);
+            if (Q.any) text(v.opt ? "+" + money(addOn(est, v)) : money(viewPrice(est, v)), W - P, "700 40px " + HF, v.opt ? muted : pine, "right");
+            Q.rows.forEach(function (r) {
+              if (r.q <= 0) return;
+              row("• " + r.c.name + ", " + itemNoun(r.c, r.q), money(v.kind === "re" ? r.re : r.nw), "500 27px " + BF, ink);
+            });
+            if (v.kind === "re" && Q.any) { y += 34; text("Reinstall of lights already on hand", P, "500 22px " + BF, muted); }
+          });
+          var inc = estSum(est, isInc), all = estSum(est, allV);
+          hr();
+          if (inc.base > 0) row("Reinstall service charge", money(inc.base), "500 27px " + BF, ink);
+          if (inc.minUp > 0.004) row("Minimum new install", "+" + money(inc.minUp), "500 27px " + BF, ink);
+          y += 16; row("Total", money(inc.total), "700 50px " + HF, pine); y += 12;
+          if (all.total > inc.total + 0.004) row("With all the add-ons", money(all.total), "600 32px " + HF, ink);
+          if (all.anyNew) row("Next year's reinstall", money(inc.nextRe), "600 32px " + HF, muted);
+          if (DB.biz.taxNote && all.anyNew) { y += 8; para("Sales tax added on the final invoice.", "500 24px " + BF, muted, 32); }
+          y += 18;
+          var items = []; views.forEach(function (v) { items = items.concat(viewItems(est, v)); });
+          para(colorTail(items), "400 25px " + BF, ink, 34);
+          if (all.anyNew) { y += 12; para(INCL, "400 25px " + BF, ink, 34); }
+        } else {
+          var A = invoiceAmts(est);
+          hr();
+          estLines(est, pick).forEach(function (l) { row(l.name + (l.c ? ", " + lineQty(l) : ""), money(l.total), "500 27px " + BF, ink); });
+          hr();
+          row("Subtotal", money(A.sub), "500 28px " + BF, ink);
+          if (A.rate > 0) row("Sales tax (" + A.rate + "%)", money(A.tax), "500 28px " + BF, ink);
+          y += 16; row(est.paid ? "Paid" : "Total due", money(A.total), "700 50px " + HF, pine); y += 12;
+          if (DB.biz.pay.trim() && !est.paid) { y += 8; para("You can pay by " + DB.biz.pay.trim() + ".", "500 26px " + BF, ink, 36); }
+          y += 8; para("Thank you for your business!", "500 26px " + BF, muted, 36);
+        }
+        y += 30;
+        if (DB.biz.phone.trim()) { y += 30; text((DB.biz.name || "") + "  ·  " + DB.biz.phone.trim(), W / 2, "500 24px " + BF, muted, "center"); }
+        return y + 40;
+      }
+      var Ht = pass(null), c = document.createElement("canvas"); c.width = W; c.height = Math.ceil(Ht);
+      var g = c.getContext("2d"); g.fillStyle = "#ffffff"; g.fillRect(0, 0, W, c.height); g.textBaseline = "alphabetic";
+      pass(g);
+      return new Promise(function (res) { c.toBlob(function (b) { res(b); }, "image/jpeg", 0.88); });
+    });
+  }
+  var dlgBlob = null, dlgName = "", dlgDone = null;
+  function showPicture(blob, name, head, note, onShared) {
+    dlgBlob = blob; dlgName = name; dlgDone = onShared || null;
+    $("dlgHead").textContent = head; $("dlgNote").textContent = note || "Or press and hold the picture to save it.";
+    $("dlgShare").hidden = false;
+    var r = new FileReader();
+    r.onload = function () { $("dlgImg").src = r.result; var d = $("dlg"); if (d.showModal) d.showModal(); else d.setAttribute("open", ""); };
+    r.readAsDataURL(blob);
+  }
+  $("dlgShare").addEventListener("click", function () {
+    if (!dlgBlob) return;
+    shareOrDownload(dlgBlob, dlgName, function (how) {
+      if (how === "cancelled") return;
+      $("dlgNote").textContent = how === "shared" ? "Done. Pick Messages to text it, or Save Image for your photos." : "Saved to your downloads.";
+      if (dlgDone) dlgDone(how);
+    });
+  });
+  function fileStem(est) { return ((est.cfg.customer || "estimate").trim().replace(/[^\w\- ]+/g, "").replace(/\s+/g, "-").toLowerCase() || "estimate") + (est.no ? "-" + String(est.no).padStart(4, "0") : ""); }
+  $("e_pic").addEventListener("click", function () {
+    var btn = this; commitDraft(); stashView(); flushEst();
+    btn.disabled = true; $("saveNote").textContent = "Making the picture...";
+    buildPicture(E, "est").then(function (blob) {
+      btn.disabled = false;
+      if (!blob) { $("saveNote").textContent = "Couldn't build the picture. Try again."; return; }
+      $("saveNote").textContent = "";
+      showPicture(blob, fileStem(E) + "-estimate.jpg", "Estimate " + (E.no ? pad4(E.no) : ""), "Tap Send or save, then choose Messages or Save Image. Or press and hold the picture.");
+    }, function () { btn.disabled = false; $("saveNote").textContent = "Couldn't build the picture. Try again."; });
+  });
+  $("e_invPic").addEventListener("click", function () {
+    var btn = this; btn.disabled = true; $("e_invNote").textContent = "Making the invoice...";
+    buildPicture(E, "inv").then(function (blob) {
+      btn.disabled = false; $("e_invNote").textContent = "";
+      if (blob) showPicture(blob, fileStem(E) + "-invoice.jpg", "Invoice " + (E.no ? pad4(E.no) : ""), "Tap Send or save, then choose Messages or Save Image.");
+    }, function () { btn.disabled = false; $("e_invNote").textContent = "Couldn't build the invoice picture. Try again."; });
+  });
   $("dlgClose").addEventListener("click", function () { var d = $("dlg"); if (d.close) d.close(); else d.removeAttribute("open"); });
   $("copyEst").addEventListener("click", function () { copyText($("estMsg").value, $("copyNote")); });
   $("copyTxt").addEventListener("click", function () { copyText($("txtMsg").value, $("copyNote")); });
 
+  // ====================== AUTOMATIC BACKUP (private GitHub repo) ======================
+  var SYNC_KEY = "tcslights:sync";
+  var SY = { busy: false, again: false, timer: null, quiet: false, state: "" };
+  function syncConf() { try { var c = JSON.parse(localStorage.getItem(SYNC_KEY) || "null"); return c && c.repo && c.token ? c : null; } catch (e) { return null; } }
+  function syncConfAll() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || "null") || {}; } catch (e) { return {}; } }
+  function syncSave(c) { try { localStorage.setItem(SYNC_KEY, JSON.stringify(c)); } catch (e) {} }
+  function metaGet(k) { return idb().then(function (db) { return new Promise(function (res, rej) { var r = db.transaction("meta").objectStore("meta").get(k); r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); }; }); }); }
+  function metaPut(k, v) { return idb().then(function (db) { return new Promise(function (res, rej) { var t = db.transaction("meta", "readwrite"); t.objectStore("meta").put(v, k); t.oncomplete = function () { res(); }; t.onerror = function () { rej(t.error); }; }); }); }
+
+  function b64FromBytes(bytes) { var s = "", CH = 0x8000; for (var i = 0; i < bytes.length; i += CH) s += String.fromCharCode.apply(null, bytes.subarray(i, i + CH)); return btoa(s); }
+  function bytesFromB64(b) { var s = atob(b.replace(/\s+/g, "")), out = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) out[i] = s.charCodeAt(i); return out; }
+  function gh(conf, path, opt) {
+    opt = opt || {};
+    var headers = { "Authorization": "Bearer " + conf.token, "X-GitHub-Api-Version": "2022-11-28", "Accept": opt.raw ? "application/vnd.github.raw" : "application/vnd.github+json" };
+    if (opt.body) headers["Content-Type"] = "application/json";
+    return fetch("https://api.github.com/repos/" + conf.repo + path, { method: opt.method || "GET", headers: headers, body: opt.body ? JSON.stringify(opt.body) : undefined, cache: "no-store" })
+      .then(function (r) { if (r.status === 404 && opt.ok404) return null; if (!r.ok) { var e = new Error("github " + r.status); e.status = r.status; throw e; } return opt.raw ? r.blob() : r.json(); });
+  }
+  function ghErrText(e) {
+    var st = e && e.status;
+    if (st === 401) return "GitHub didn't accept the token. It may have expired. Make a new one and turn backup on again.";
+    if (st === 403) return "The token can't write to the repository. Give it Contents: Read and write.";
+    if (st === 404) return "Couldn't find the repository. Check the name, and that the token was given access to it.";
+    if (e && e.message === "public") return "That repository is public. Make it private on GitHub first so customer info stays private.";
+    if (e && e.message === "shrink") return "The copy online looked very different from this phone, so nothing was changed. Tap Back up now to try again, or message Claude.";
+    return "Couldn't reach GitHub. It will try again next time you're online.";
+  }
+
+  // records: one per customer, one per estimate, one for settings
+  function toRecs(db) {
+    var r = {};
+    db.customers.forEach(function (c) { r["c:" + c.id] = JSON.stringify(c); });
+    db.estimates.forEach(function (e) { r["e:" + e.id] = JSON.stringify(e); });
+    r.settings = JSON.stringify({ templates: db.templates, vars: db.vars, cfg: db.cfg, biz: db.biz, nextNo: db.nextNo });
+    return r;
+  }
+  function mergeRecs(L, R, B) {
+    var out = {}, keys = {};
+    [L, R, B].forEach(function (o) { Object.keys(o).forEach(function (k) { keys[k] = 1; }); });
+    Object.keys(keys).forEach(function (k) {
+      var l = L[k], r = R[k], b = B[k], v;
+      if (l === r) v = l; else if (l === b) v = r; else if (r === b) v = l; else v = l !== undefined ? l : r;
+      if (v !== undefined) out[k] = v;
+    });
+    return out;
+  }
+  function applyRecs(M, L) {
+    var changed = false, byId = {};
+    DB.customers.forEach(function (c) { byId["c:" + c.id] = c; });
+    DB.estimates.forEach(function (e) { byId["e:" + e.id] = e; });
+    function pick(k) { if (M[k] === L[k] && byId[k]) return byId[k]; changed = true; return JSON.parse(M[k]); }
+    var cust = [], est = [];
+    DB.customers.forEach(function (c) { var k = "c:" + c.id; if (M[k] !== undefined) cust.push(pick(k)); else changed = true; });
+    DB.estimates.forEach(function (e) { var k = "e:" + e.id; if (M[k] !== undefined) est.push(pick(k)); else changed = true; });
+    Object.keys(M).forEach(function (k) {
+      if (k.slice(0, 2) === "c:" && !L[k]) { cust.push(JSON.parse(M[k])); changed = true; }
+      if (k.slice(0, 2) === "e:" && !L[k]) { est.push(JSON.parse(M[k])); changed = true; }
+    });
+    if (!changed && M.settings === L.settings) return false;
+    DB.customers = cust; DB.estimates = est;
+    if (M.settings && M.settings !== L.settings) {
+      var st = JSON.parse(M.settings);
+      if (st.templates) DB.templates = st.templates; if (st.vars) DB.vars = st.vars;
+      if (st.cfg !== undefined) DB.cfg = st.cfg; if (st.biz) DB.biz = st.biz; if (st.nextNo) DB.nextNo = st.nextNo;
+    }
+    var maxNo = 0; DB.estimates.forEach(function (e) { if (e.no > maxNo) maxNo = e.no; });
+    if (DB.nextNo <= maxNo) DB.nextNo = maxNo + 1;
+    return true;
+  }
+  function afterRemoteChange() {
+    G = loadCfg();
+    var fresh = E.no ? estById(E.id) : null;
+    if (E.no && fresh !== E) { if (fresh) { E = shapeEst(fresh); cfg = E.cfg; } else { E = blankEst(); cfg = E.cfg; } quoteCust = E.custId && custById(E.custId) ? E.custId : null; activateView(E.av, true); fillQuoteSelect(); syncRateInputs(); renderEstHead(); }
+    syncBizInputs();
+    if (currentTab === "customers") { if (openId && custById(openId)) openDetail(openId); else openList(); }
+    if (currentTab === "route") renderRoute();
+    if (currentTab === "texts") renderTexts();
+  }
+  function readRemote(conf) {
+    function asStrings(obj) { var o = {}; Object.keys(obj || {}).forEach(function (k) { o[k] = JSON.stringify(obj[k]); }); return o; }
+    return gh(conf, "/contents/data.json", { ok404: true }).then(function (j) {
+      if (!j) return { sha: null, recs: {} };
+      if (j.content && j.encoding === "base64") return { sha: j.sha, recs: asStrings(JSON.parse(new TextDecoder().decode(bytesFromB64(j.content))).recs) };
+      return gh(conf, "/contents/data.json", { raw: true }).then(function (b) { return b.text(); }).then(function (t) { return { sha: j.sha, recs: asStrings(JSON.parse(t).recs) }; });
+    });
+  }
+  function photoIds() { var ids = {}; DB.estimates.forEach(function (e) { (e.views || []).forEach(function (v) { if (v.photo) ids[v.photo] = 1; }); }); return Object.keys(ids); }
+  function uploadPhotos(conf) {
+    return metaGet("photosUp").then(function (up) {
+      up = up || {};
+      var todo = photoIds().filter(function (id) { return !up[id]; }), i = 0;
+      function next() {
+        if (i >= todo.length) return metaPut("photosUp", up);
+        var id = todo[i++];
+        return photoBlob(id).then(function (b) {
+          if (!b) return;
+          return b.arrayBuffer().then(function (buf) {
+            return gh(conf, "/contents/photos/" + id + ".jpg", { method: "PUT", body: { message: "Photo " + id, content: b64FromBytes(new Uint8Array(buf)) } })
+              .then(function () { up[id] = 1; }, function (e) { if (e.status === 422) up[id] = 1; else throw e; });
+          });
+        }).then(next);
+      }
+      return next();
+    });
+  }
+  function syncFetchPhoto(id) {
+    var conf = syncConf(); if (!conf) return Promise.resolve(null);
+    return gh(conf, "/contents/photos/" + id + ".jpg", { raw: true, ok404: true }).then(function (b) {
+      if (!b) return null;
+      var blob = new Blob([b], { type: "image/jpeg" });
+      return photoPut(id, blob).then(function () { return metaGet("photosUp"); }).then(function (up) { up = up || {}; up[id] = 1; return metaPut("photosUp", up); }).then(function () { return blob; }, function () { return blob; });
+    }).catch(function () { return null; });
+  }
+  function syncSoon() {
+    if (SY.quiet || !syncConf()) return;
+    SY.state = "waiting"; clearTimeout(SY.timer); SY.timer = setTimeout(function () { syncNow(); }, 12000);
+  }
+  function syncNow(fromHide) {
+    var conf = syncConf(); if (!conf) return Promise.resolve();
+    if (SY.busy) { SY.again = true; return Promise.resolve(); }
+    clearTimeout(SY.timer); SY.busy = true; SY.state = "busy"; renderSync();
+    if (!fromHide) flushEst();
+    var tries = 0;
+    function attempt() {
+      tries++;
+      return Promise.all([readRemote(conf), metaGet("base").catch(function () { return null; })]).then(function (a) {
+        var R = a[0], B = (a[1] && a[1].recs) || {}, L = toRecs(DB);
+        var M = mergeRecs(L, R.recs, B);
+        var lc = Object.keys(L).filter(function (k) { return k[0] === "c"; }).length, mc = Object.keys(M).filter(function (k) { return k[0] === "c"; }).length;
+        if (lc > 5 && mc < lc * 0.75) throw new Error("shrink");
+        SY.quiet = true;
+        var changed = applyRecs(M, L);
+        if (changed) { saveDB(); afterRemoteChange(); }
+        SY.quiet = false;
+        var same = Object.keys(M).length === Object.keys(R.recs).length && Object.keys(M).every(function (k) { return M[k] === R.recs[k]; });
+        var push = same ? Promise.resolve() : (function () {
+          var obj = {}; Object.keys(M).forEach(function (k) { obj[k] = JSON.parse(M[k]); });
+          var bytes = new TextEncoder().encode(JSON.stringify({ v: 1, saved: new Date().toISOString(), recs: obj }));
+          var body = { message: "Backup " + new Date().toISOString(), content: b64FromBytes(bytes) }; if (R.sha) body.sha = R.sha;
+          return gh(conf, "/contents/data.json", { method: "PUT", body: body });
+        })();
+        return push.then(function () { return metaPut("base", { recs: M }); });
+      }).catch(function (e) {
+        SY.quiet = false;
+        if ((e.status === 409 || e.status === 422) && tries < 3) return attempt();
+        throw e;
+      });
+    }
+    function firstCheck() {
+      if (conf.checked) return Promise.resolve();
+      return fetch("https://api.github.com/repos/" + conf.repo, { headers: { "Authorization": "Bearer " + conf.token, "Accept": "application/vnd.github+json" }, cache: "no-store" })
+        .then(function (r) { if (!r.ok) { var e = new Error("github " + r.status); e.status = r.status; throw e; } return r.json(); })
+        .then(function (j) { if (!j.private) throw new Error("public"); var c = syncConfAll(); c.checked = true; syncSave(c); conf.checked = true; });
+    }
+    return firstCheck().then(attempt).then(function () { return uploadPhotos(conf); }).then(function () {
+      var c = syncConfAll(); c.last = new Date().toISOString(); c.err = ""; syncSave(c); SY.state = "ok";
+    }, function (e) {
+      try { console.warn("backup failed", e && (e.stack || e.message || e)); } catch (x) {}
+      var c = syncConfAll(); c.err = ghErrText(e); syncSave(c); SY.state = "err";
+    }).then(function () {
+      SY.busy = false; renderSync(); renderStats();
+      if (SY.again) { SY.again = false; syncSoon(); }
+    });
+  }
+  function syncStart() {
+    renderSync();
+    if (syncConf()) setTimeout(function () { syncNow(); }, 1500);
+    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible" && syncConf()) syncNow(); });
+  }
+  function ago(iso) {
+    var m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (m < 1) return "just now"; if (m < 60) return m + " minute" + (m === 1 ? "" : "s") + " ago";
+    var hh = Math.round(m / 60); if (hh < 36) return hh + " hour" + (hh === 1 ? "" : "s") + " ago";
+    var d = Math.round(hh / 24); return d + " days ago";
+  }
+  function renderSync() {
+    var conf = syncConf(), all = syncConfAll();
+    $("s_on").hidden = !conf; $("s_setup").hidden = !!conf;
+    if (!$("s_repo").value) $("s_repo").value = all.repo || "tcstaining-ctrl/TCS-Lights-data";
+    if (!conf) return;
+    var st = $("s_state");
+    if (SY.state === "busy") { st.textContent = "Backing up..."; st.className = ""; }
+    else if (all.err) { st.textContent = "Last backup didn't go through"; st.className = "syncerr"; }
+    else if (all.last) { st.textContent = "Backed up " + ago(all.last); st.className = "synced"; }
+    else { st.textContent = "Waiting for the first backup"; st.className = ""; }
+    $("s_detail").textContent = all.err ? all.err : "To " + conf.repo + ". Customers, estimates, texts, rates and photos. It runs on its own after each change.";
+  }
+  $("s_go").addEventListener("click", function () {
+    var repo = $("s_repo").value.trim().replace(/^https?:\/\/github\.com\//i, "").replace(/\.git$/, "").replace(/\/+$/, ""), tok = $("s_tok").value.trim();
+    if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) { $("s_note").textContent = "Repository should look like tcstaining-ctrl/TCS-Lights-data."; return; }
+    if (tok.length < 20) { $("s_note").textContent = "Paste the whole token. It starts with github_pat_."; return; }
+    syncSave({ repo: repo, token: tok, checked: false });
+    $("s_tok").value = ""; $("s_note").textContent = "Checking the connection...";
+    metaPut("base", { recs: {} }).catch(function () {}).then(function () { return syncNow(); }).then(function () {
+      var all = syncConfAll();
+      if (all.err) { $("s_note").textContent = all.err; if (!all.last) { syncSave({ repo: repo }); renderSync(); } }
+      else $("s_note").textContent = "Automatic backup is on.";
+    });
+  });
+  $("s_now").addEventListener("click", function () { $("s_note").textContent = ""; syncNow(); });
+  var offArmed = false;
+  $("s_off").addEventListener("click", function () {
+    if (!offArmed) { offArmed = true; this.textContent = "Tap again to turn off"; var b = this; setTimeout(function () { offArmed = false; b.textContent = "Turn off"; }, 4000); return; }
+    var c = syncConfAll(); syncSave({ repo: c.repo }); offArmed = false; this.textContent = "Turn off";
+    $("s_note").textContent = "Automatic backup is off. Your data on GitHub is still there."; renderSync();
+  });
+
   // ---------- start ----------
-  buildLines();
-  syncRateInputs();
-  refreshUI();
+  openEstimateAtStart();
+  syncBizInputs();
   showTab("customers");
+  syncStart();
 })();
 </script>
 </body>
